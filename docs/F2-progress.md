@@ -235,6 +235,22 @@ Pemain yang mengegas lebih pelan tetap mencapai >4 m/s, hanya terlambat. Semua k
 
 **Langkah berikutnya:** tabel kebijakan kecepatan per job dan fase untuk **semua** job (termasuk jalur lama), dikalibrasi ke distribusi kecepatan per peran dan fase di Metrica. M3 cukup mengeksekusi.
 
+### Ronde 7: tabel kecepatan per peran dan fase (satu uji, stop rule)
+
+`audit/speed_table.js` mengukur kecepatan Metrica per kelompok peran (CB, FB, DM/CM, AM/W, ST) × fase (menyerang/bertahan × settled/transisi) dan menghasilkan `engine/team_shape_speed.go` (P80 dan P90). Flag `SpeedTable` (kunci `sq`, default off): slot/offset/job native tidak mendesak dalam RunDistance dibatasi P80, penanda non-bahaya dibatasi P90. Flag off = output TS identik F2c.
+
+| 10 seed | Skor | chase3 | liar5 | gol | lari >4 m/s per jam | porsi >4 m/s |
+|---|---|---|---|---|---|---|
+| F2c | 0.921 | 23 | 25 | 2.5 | 681 | ~30% |
+| A `sq=1` | 0.949 | 23 | 23 | 2.4 | 499 | 21% |
+| B `sq=1,rd=99` | 1.041 | 16.5 | 23 | 3.9 | 361 | 15% |
+
+**Hasil: gagal stop rule.** Kecepatan turun jauh (B mendekati Metrica: porsi >4 m/s 15% vs 13%), tapi chase3/liar5 hampir tidak bergerak dan skor total memburuk.
+
+**Kesimpulan penting:** chase dan bola liar **bukan** masalah kecepatan. Pemain yang dilambatkan tetap menuju bola, hanya lebih lambat. Masalahnya **siapa yang diberi job menuju bola** (jumlah pelari), bukan seberapa cepat mereka lari. Tabel disimpan sebagai alat (default off).
+
+Sesuai stop-loss: tuning gerak dihentikan.
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

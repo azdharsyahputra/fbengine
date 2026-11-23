@@ -284,6 +284,9 @@ type TeamShapeConfig struct {
 	// MarkBehind (m): a marker may stand at most this far beyond his man (attack
 	// direction); 99 = any (a bypassed player may run back to mark).
 	MarkBehind float64 `json:"mark_behind"` // mb
+	// SpeedTable: non-action moves are capped at the real players' speed percentiles per
+	// role group and phase (team_shape_speed.go, from Metrica).
+	SpeedTable bool `json:"speed_table"` // sq (0/1)
 }
 
 // DefaultConfig returns the go4 defaults (identical to the former package
@@ -460,6 +463,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.PassTrigger = f != 0
 			case "mb":
 				c.TeamShape.MarkBehind = f
+			case "sq":
+				c.TeamShape.SpeedTable = f != 0
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":

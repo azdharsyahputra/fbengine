@@ -192,7 +192,11 @@ func (e *MatchEngine) teamShapeCompose() {
 				// the gap), neither sprinting at every touch nor left behind
 				o := &e.players[j.man]
 				want := math.Hypot(o.Velocity.X, o.Velocity.Y) + teamShapeDistance(p, r.Target)/e.cfg.TeamShape.CloseTime
-				p.ComposeSpeed, p.ComposeWant = uint8(composeRun)+1, math.Min(want, e.cfg.TeamShape.RunSpeed)
+				want = math.Min(want, e.cfg.TeamShape.RunSpeed)
+				if ts.SpeedTable {
+					want = math.Min(want, teamShapeSpeedP90[teamShapeRoleGroup(p)][e.teamShapePhase(p)])
+				}
+				p.ComposeSpeed, p.ComposeWant = uint8(composeRun)+1, want
 				continue
 			}
 			native = true
@@ -230,6 +234,11 @@ func (e *MatchEngine) teamShapeCompose() {
 		}
 		if defending && d > ts.RunDistance {
 			want = math.Min(want, ts.DefRunSpeed) // out of position: back at a run, not a sprint
+		}
+		// the speed table (Metrica, per role group and phase): a non-action move in
+		// position goes no faster than real players' 80th percentile
+		if ts.SpeedTable && d <= ts.RunDistance {
+			want = math.Min(want, teamShapeSpeedP80[teamShapeRoleGroup(p)][e.teamShapePhase(p)])
 		}
 		p.ComposeWant = want
 		switch {
@@ -494,4 +503,36 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 		}
 	}
 	return jobs
+}
+
+// teamShapeRoleGroup maps a player to the speed table's role group.
+func teamShapeRoleGroup(p *MatchPlayer) int {
+	if p.Player == nil {
+		return 2
+	}
+	switch p.Player.GetRole() {
+	case PlayerRole_CB:
+		return 0
+	case PlayerRole_LB, PlayerRole_RB:
+		return 1
+	case PlayerRole_CDM, PlayerRole_CM:
+		return 2
+	case PlayerRole_ST:
+		return 4
+	}
+	return 3 // CAM, wide midfielders, wingers
+}
+
+// teamShapePhase is the speed table's phase of the player's side: 0/1 in possession
+// (settled / first seconds after winning it), 2/3 defending (settled / just lost it).
+func (e *MatchEngine) teamShapePhase(p *MatchPlayer) int {
+	st := &e.teamShape
+	ph := 2
+	if st.set && st.home == p.IsHomeTeam {
+		ph = 0
+	}
+	if st.set && e.getSimulatedSeconds()-st.since < teamShapeTransition {
+		ph++
+	}
+	return ph
 }
