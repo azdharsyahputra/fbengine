@@ -13,8 +13,9 @@ import (
 // 9f961677… B2: m2.lane_clear_radius removed (lane is spatialLaneBlockers);
 // 1f84b21c… go9: press.* (organised press in the opponent's third);
 // ad85f0ba… go10: m1.forward_bypassed_effort 0, bypassed_sprint_goal 25, recover_clearance;
-// 2963b878… E2: progress_* moved m10 → m2, m2.to_feet (behaviour = go10).
-const goldenDefaultHash = "2963b87807d97f0e062309a440fc15cead1d77cf2fa056055cfee50e0f1f5081"
+// 2963b878… E2: progress_* moved m10 → m2, m2.to_feet (behaviour = go10);
+// 749dbb80… go11: m2.duel_loss 0.5, m2.progress_final 0.003.
+const goldenDefaultHash = "749dbb80eb4a06c55e634f12c937a6694414b37defb8e75dbb8a47025ab9c511"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

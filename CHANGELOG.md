@@ -2,6 +2,29 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go11: Phase 2, item E (action decisions) (2026-11-23)
+
+Config `749dbb80…`.
+
+- **E2:** M2 owns the pass value as named terms. Progress and to-feet moved from M10 into `m2.*`. Behaviour is unchanged (go10 replays identical).
+- **E3:**
+  - `m2.duel_loss` 0.5 (was 0.3).
+  - `m2.progress_final` 0.003 (was 0.0012).
+- **Harness:** gains real-comparable decision metrics (`audit/press.js`, `zone.js`).
+- **Result (10 seeds vs go10):**
+
+  | | go10 | go11 | Real |
+  |---|---|---|---|
+  | Backward | 27% | 24% | 24% |
+  | Final-third backward | 48% | 39% | 27–34% |
+  | Fouls per side | 18.8 | 15.9 | — |
+  | chase≥3 | 5.1 | 4.6 | — |
+  | Box free | 21% | 28% | — |
+  | Loose ≥5 | 10.3 | 10.8 | — |
+
+- **Unchanged by these levers:** receptions under pressure (~19–20%, real ~32%) and possession median (~10 s, real 6.3 s).
+- **Reproduce go10:** `FMENGINE_M2TUNE=dw=0.3 FMENGINE_M10=pf=0.0012`.
+
 ## go10: Phase 2, item D (ball behaviour) (2026-11-23)
 
 Config `ad85f0ba…`.

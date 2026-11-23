@@ -133,3 +133,27 @@ go9, 10 seeds, front-of-box zone:
   - Real possession ping-pongs (engine truth) are 4–7 per match, at or below the real cek figure of 8.
   - The rest of the cek count (11–23) is duel contact: 17–29 visual steals per match, mostly the Contain's challenges. These are real duels, so they are not suppressed.
 - **Open:** loose ball ≥5 (9.9 vs 6.8). Its runners are recoveries and transition support, not claimers.
+
+## Action decisions (item E)
+
+- **E2, single owner:** M2 owns the whole pass value as named terms (`fe_m2_terms.go`):
+  - core: FE expected value, from the race;
+  - cooperation: M5 duty bias;
+  - progress: `m2.progress_*`, moved from M10.
+  - The to-feet retry is `m2.to_feet`, moved from M10's switch.
+  - `FMENGINE_M2TRACE=2` prints each option's terms.
+- **E1/E3, calibration against real-comparable decision metrics** (live mode; `audit/press.js`, `zone.js`):
+
+  | Metric | Real |
+  |---|---|
+  | Receptions under pressure | 26–37% |
+  | Kept after reception | 78–84% |
+  | Backward, middle third | 24–27% |
+  | Backward, final third | 27–34% |
+  | Backward, overall | 22–25% |
+
+  - `m2.duel_loss` 0.3 → 0.5: carriers avoid contact.
+  - `m2.progress_final` 0.0012 → 0.003.
+- **Not reachable by decision levers:**
+  - Receptions under pressure (~19%, real ~32%): receivers are freer than in real play, which is a marking/positioning matter.
+  - Possession median (~10 s, real 6.3 s).

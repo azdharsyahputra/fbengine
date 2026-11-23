@@ -186,10 +186,10 @@ func DefaultConfig() EngineConfig {
 			PassMarginBias:    feM2PassMarginBias,
 			LoftedCeiling:     feM2LoftedCeiling,
 			CarryPressure:     feM2CarryPressurePenalty,
-			DuelLoss:          0.3,
+			DuelLoss:          0.5, // go11 (go4-go10: 0.3): carriers avoid contact, fouls 18.8 → 15.9
 			ProgressOwn:       0.0,
 			ProgressMid:       0.0005,
-			ProgressFinal:     0.0012,
+			ProgressFinal:     0.003, // go11 (go4-go10: 0.0012): backward 27 → 24 % (real 24)
 			ToFeet:            true,
 		},
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,

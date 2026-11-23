@@ -24,6 +24,10 @@ for (const f of files) {
   put('own3near', one(t, /sendiri: n\d+ bek terdekat median ([\d.]+) m/));
   put('own3in5', one(t, /sendiri: n\d+ bek terdekat median [\d.]+ m p25 [\d.]+ \| ≥1 dalam 5 m (\d+)%/));
   put('mid3in5', one(t, /tengah: n\d+ bek terdekat median [\d.]+ m p25 [\d.]+ \| ≥1 dalam 5 m (\d+)%/));
+  put('recvPress', one(t, /terima ditekan <4m (\d+)%/));
+  put('kept', one(t, /lanjut tim sendiri (\d+)%/));
+  put('bwFinal', one(t, /1\/3 akhir: n\d+ maju \d+% mundur (\d+)%/));
+  put('bwMid', one(t, /1\/3 tengah: n\d+ maju \d+% mundur (\d+)%/));
   put('buEng', one(a, /M1 engager assigned (\d+)%/));
   put('pLoose5', one(a, /truly loose: runners-at-ball median \d+ p90 \d+ ≥5 ([\d.]+)%/));
   put('pPress2', one(a, /defenders <5 m median \d+ ≥2 (\d+)%/));
