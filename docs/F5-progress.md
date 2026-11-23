@@ -70,3 +70,21 @@ Di bola asli jarak kawal melebar makin jauh dari bola. Marker native selalu 2 m 
 Penjaga bentuk tidak memburuk (own3in5 36, tepi bawah). Gol turun 3.1 → 2.3: diawasi, masih dalam noise 10 seed (~0.55 SD).
 
 **Sisa:** dekat bola (0–15 m) masih terlalu rapat (40% vs 29%): first defender, cover, dan presser kedua, bukan marker.
+
+## Ronde 3: rapat dekat bola
+
+Probe `AUDIT near-ball marking` (read-only): dari penyerang dalam 15 m dari bola, ~28% punya bek <3 m. Penyumbang: marker ~13%, cover ~7%, first defender ~4.5%, presser kedua ~2.4%.
+
+| 10 seed | Skor | Lolos | Penjaga bentuk | 0–8 m % <3 m | Sepertiga sendiri bek <3 m (asli 2.4) | Gol | Offside/tim |
+|---|---|---|---|---|---|---|---|
+| default `ml=0.15` | 0.816 | 96 | 2/6 | 40% | 3.3 | 2.3 | 9.2 |
+| `mo=4,ml=0.08` (jarak dasar marker) | 0.858 | 96 | 2/6 | 39% | 3.3 | 3.2 | 9.1 |
+| `mo=3.5,ml=0.1` | 0.800 | 98 | 2/6 | 40% | 3.4 | 2.4 | 8.1 |
+| `mt=18` (ketat hanya ±kotak) | 0.809 | 98 | **1/6** (own3in5 35) | 47% | 2.6 | 2.3 | 8.5 |
+| **`mt=25` (default baru)** | **0.792** | 99 | 2/6 | 40% | 3.0 | 3.5 | 7.0 |
+
+- **Jarak dasar marker (`mo`):** gagal, profil dekat bola tidak bergerak. Dibuang.
+- **Temuan:** di sepertiga sendiri seluruh zona bahaya (35 m dari gawang) dikawal 2 m.
+- **Perubahan:** `TeamShape.MarkTight` (kunci `mt`, default 25). Di zona bahaya hanya penyerang dalam 25 m dari gawang yang dikawal 2 m; yang lebih jauh memakai jarak melebar `MarkSlope`.
+
+**Sisa:** 0–8 m dari bola tetap 40% (asli 29%). Itu bukan marker, tapi cover/first defender/presser kedua di sekitar pembawa bola.

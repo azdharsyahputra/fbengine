@@ -445,7 +445,8 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 		for _, a := range atts {
 			op := pm(&e.players[a.i])
 			gap := ts.MarkGoalSide
-			if !a.danger {
+			au0, _ := fr.toFrame(op[0], op[1])
+			if !a.danger || (ts.MarkTight > 0 && au0 > ts.MarkTight) {
 				gap += ts.MarkSlope * math.Hypot(op[0]-bx, op[1]-by)
 			}
 			mark := toward(op, goal, gap)

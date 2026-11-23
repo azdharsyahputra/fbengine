@@ -50,6 +50,9 @@ type auditState struct {
 	offStand map[string]int
 	offSteps int
 	offPass map[string]int
+	// near-ball marking: attackers within 15 m of the ball; nearest defender <3 m by owner:reason
+	nearMark map[string]int
+	nearAtt  int
 	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
 	sprintStart                    map[string]int
 	sprints, targetJumps, jobJumps int
@@ -412,6 +415,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditCarryReport(w)
 	e.auditFoulReport(w)
 	e.auditOffsideReport(w)
+	e.auditNearMarkReport(w)
 	if len(e.audit.fast) > 0 {
 		type kv struct {
 			k string
@@ -1258,6 +1262,7 @@ func (e *MatchEngine) auditOffsideStep() {
 		return
 	}
 	a.offSteps++
+	e.auditNearMark(holder)
 	line := e.offsideLine(holder.IsHomeTeam)
 	for i := range e.players {
 		p := &e.players[i]
@@ -1320,6 +1325,65 @@ func (e *MatchEngine) auditOffsideReport(w io.Writer) {
 	fmt.Fprintf(w, "AUDIT offside passes:")
 	for _, k := range ks {
 		fmt.Fprintf(w, " %s %d |", k, a.offPass[k])
+	}
+	fmt.Fprintln(w)
+}
+
+// auditNearMark: attackers (not the holder) within 15 m of the ball and the
+// job of their nearest defender when he is within 3 m (audit only).
+func (e *MatchEngine) auditNearMark(holder *MatchPlayer) {
+	a := &e.audit
+	if a.nearMark == nil {
+		a.nearMark = map[string]int{}
+	}
+	pm := func(p *MatchPlayer) (float64, float64) {
+		return p.Position.X * Pitch_LENGTH_METRES, p.Position.Y * Pitch_WIDTH_METRES
+	}
+	bx, by := e.ball.Position.X*Pitch_LENGTH_METRES, e.ball.Position.Y*Pitch_WIDTH_METRES
+	for i := range e.players {
+		o := &e.players[i]
+		if !active(o) || o.IsGoalkeeper || o.IsHomeTeam != holder.IsHomeTeam || o == holder {
+			continue
+		}
+		ox, oy := pm(o)
+		if math.Hypot(ox-bx, oy-by) >= 15 {
+			continue
+		}
+		a.nearAtt++
+		var nd *MatchPlayer
+		dd := 3.0
+		for j := range e.players {
+			d := &e.players[j]
+			if !active(d) || d.IsGoalkeeper || d.IsHomeTeam == holder.IsHomeTeam {
+				continue
+			}
+			dx, dy := pm(d)
+			if h := math.Hypot(dx-ox, dy-oy); h < dd {
+				nd, dd = d, h
+			}
+		}
+		if nd != nil {
+			a.nearMark[nd.TargetOwner.String()+":"+nd.TargetReason.String()]++
+			a.nearMark["all"]++
+		}
+	}
+}
+
+func (e *MatchEngine) auditNearMarkReport(w io.Writer) {
+	a := &e.audit
+	if a.nearAtt == 0 {
+		return
+	}
+	var ks []string
+	for k := range a.nearMark {
+		ks = append(ks, k)
+	}
+	sort.Slice(ks, func(i, j int) bool { return a.nearMark[ks[i]] > a.nearMark[ks[j]] })
+	fmt.Fprintf(w, "AUDIT near-ball marking (<3 m, attackers within 15 m): n %d |", a.nearAtt)
+	for i, k := range ks {
+		if i < 10 {
+			fmt.Fprintf(w, " %s %.1f%% |", k, 100*float64(a.nearMark[k])/float64(a.nearAtt))
+		}
 	}
 	fmt.Fprintln(w)
 }

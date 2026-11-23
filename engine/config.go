@@ -287,6 +287,10 @@ type TeamShapeConfig struct {
 	// metres per metre between his man and the ball (Metrica: nearest defender
 	// ~4.7 m at the ball, ~6.4 m 30 m away). 0 = fixed MarkGoalSide (F2c).
 	MarkSlope float64 `json:"mark_slope"` // ml
+	// MarkTight (m): in the danger zone only men within this depth of the
+	// goal are marked at MarkGoalSide; deeper (further out) ones get the
+	// MarkSlope gap too. 0 = the whole danger zone is tight (F5 ml).
+	MarkTight float64 `json:"mark_tight"` // mt
 	// CounterPress (s): after losing the ball the side presses as in the press zone for
 	// this long (away from its own goal).
 	CounterPress float64 `json:"counter_press"` // cp
@@ -354,7 +358,7 @@ func DefaultConfig() EngineConfig {
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
 			DangerDepth: 40, MarkZone: 30, ShiftSpeed: 2.4, WalkZone: 3,
-			NativeDefence: true, KeepTime: 0.75, EngageDepth: 35, CoverGap: 6, MarkRadius: 12, RunnerSpeed: 3.5, PressOption: 20, DefRunSpeed: 4.5, NearBall: 25, MarkGoalSide: 2, MarkSlope: 0.15, CounterPress: 4, PressMarkRadius: 40, PassTrigger: true, MarkBehind: 99,
+			NativeDefence: true, KeepTime: 0.75, EngageDepth: 35, CoverGap: 6, MarkRadius: 12, RunnerSpeed: 3.5, PressOption: 20, DefRunSpeed: 4.5, NearBall: 25, MarkGoalSide: 2, MarkSlope: 0.15, MarkTight: 25, CounterPress: 4, PressMarkRadius: 40, PassTrigger: true, MarkBehind: 99,
 			TrotSpeed: 2.6, AnchorTime: 3, DepthDev: 5},
 		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
@@ -472,6 +476,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.MarkGoalSide = f
 			case "ml":
 				c.TeamShape.MarkSlope = f
+			case "mt":
+				c.TeamShape.MarkTight = f
 			case "cp":
 				c.TeamShape.CounterPress = f
 			case "pr":
