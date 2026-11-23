@@ -12,8 +12,9 @@ import (
 // 83a5d924… go6: loose.contest_gap 0.25 (+ m1.contain_window, loose.* fields);
 // 9f961677… B2: m2.lane_clear_radius removed (lane is spatialLaneBlockers);
 // 1f84b21c… go9: press.* (organised press in the opponent's third);
-// ad85f0ba… go10: m1.forward_bypassed_effort 0, bypassed_sprint_goal 25, recover_clearance.
-const goldenDefaultHash = "ad85f0ba0576954575ce0d7d3318c2b1f878ef9ced7cbce01dfcf15fc44ee942"
+// ad85f0ba… go10: m1.forward_bypassed_effort 0, bypassed_sprint_goal 25, recover_clearance;
+// 2963b878… E2: progress_* moved m10 → m2, m2.to_feet (behaviour = go10).
+const goldenDefaultHash = "2963b87807d97f0e062309a440fc15cead1d77cf2fa056055cfee50e0f1f5081"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {
@@ -26,7 +27,7 @@ func TestConfigHashDeterministicAndSensitive(t *testing.T) {
 	if a.Hash() != b.Hash() {
 		t.Fatal("hash not deterministic")
 	}
-	b.M10.ProgressFinal = 0.002
+	b.M2.ProgressFinal = 0.002
 	if a.Hash() == b.Hash() {
 		t.Fatal("hash ignores a field change")
 	}
@@ -60,7 +61,7 @@ func TestApplyOverridesLegacySemantics(t *testing.T) {
 	if c.M2.LoftedCeiling != DefaultConfig().M2.LoftedCeiling {
 		t.Fatal("non-numeric value must be skipped")
 	}
-	if c.M10.ProgressFinal != 0.002 || c.M10.RetreatMid != 4 || c.M10.BlockLength != 0.1 {
+	if c.M2.ProgressFinal != 0.002 || c.M10.RetreatMid != 4 || c.M10.BlockLength != 0.1 {
 		t.Fatalf("m10 %+v", c.M10)
 	}
 	want := map[string]bool{"OFF:bogus": true, "M2TUNE:zz": true, "M10:qq": true}

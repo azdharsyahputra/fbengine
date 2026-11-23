@@ -71,6 +71,13 @@ type M2Config struct {
 	LoftedCeiling     float64 `json:"lofted_ceiling"`      // lc
 	CarryPressure     float64 `json:"carry_pressure"`      // cp
 	DuelLoss          float64 `json:"duel_loss"`           // dw
+	// Progress appetite (goal-probability units per metre a pass gains),
+	// by the carrier's third: own / middle / final (M10 keys pa/pm/pf).
+	ProgressOwn   float64 `json:"progress_own"`
+	ProgressMid   float64 `json:"progress_mid"`
+	ProgressFinal float64 `json:"progress_final"`
+	// ToFeet: retry a pass cut off in the lead as a pass to feet.
+	ToFeet bool `json:"to_feet"`
 }
 
 // M1Config is the M1 defensive-task geometry (Phase 2).
@@ -133,18 +140,15 @@ type M8Config struct {
 
 // M10Config is our attack-structure / calibration layer (fe_m10_structure.go).
 type M10Config struct {
-	NearDepth     float64 `json:"near_depth"`     // nd
-	NearWidth     float64 `json:"near_width"`     // nw
-	BoxGoalSide   float64 `json:"box_goal_side"`  // bg
-	GoalSide      float64 `json:"goal_side"`      // gs
-	TightWeight   float64 `json:"tight_weight"`   // tw
-	RetreatFwd    float64 `json:"retreat_fwd"`    // rf
-	RetreatMid    float64 `json:"retreat_mid"`    // rm
-	BlockLift     float64 `json:"block_lift"`     // bl
-	BlockLength   float64 `json:"block_length"`   // bn
-	ProgressOwn   float64 `json:"progress_own"`   // pa
-	ProgressMid   float64 `json:"progress_mid"`   // pm
-	ProgressFinal float64 `json:"progress_final"` // pf
+	NearDepth   float64 `json:"near_depth"`    // nd
+	NearWidth   float64 `json:"near_width"`    // nw
+	BoxGoalSide float64 `json:"box_goal_side"` // bg
+	GoalSide    float64 `json:"goal_side"`     // gs
+	TightWeight float64 `json:"tight_weight"`  // tw
+	RetreatFwd  float64 `json:"retreat_fwd"`   // rf
+	RetreatMid  float64 `json:"retreat_mid"`   // rm
+	BlockLift   float64 `json:"block_lift"`    // bl
+	BlockLength float64 `json:"block_length"`  // bn
 }
 
 // EngineConfig is the complete gameplay configuration of one match.
@@ -183,6 +187,10 @@ func DefaultConfig() EngineConfig {
 			LoftedCeiling:     feM2LoftedCeiling,
 			CarryPressure:     feM2CarryPressurePenalty,
 			DuelLoss:          0.3,
+			ProgressOwn:       0.0,
+			ProgressMid:       0.0005,
+			ProgressFinal:     0.0012,
+			ToFeet:            true,
 		},
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
@@ -203,7 +211,6 @@ func DefaultConfig() EngineConfig {
 			BoxGoalSide: 1.5, GoalSide: 1.5, TightWeight: 0.7,
 			RetreatFwd: 0.0, RetreatMid: 6.0,
 			BlockLift: 0.0, BlockLength: 0.0,
-			ProgressOwn: 0.0, ProgressMid: 0.0005, ProgressFinal: 0.0012,
 		},
 	}
 }
@@ -359,11 +366,11 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 		case "tw":
 			m.TightWeight = f
 		case "pa":
-			m.ProgressOwn = f
+			c.M2.ProgressOwn = f
 		case "pm":
-			m.ProgressMid = f
+			c.M2.ProgressMid = f
 		case "pf":
-			m.ProgressFinal = f
+			c.M2.ProgressFinal = f
 		case "bl":
 			m.BlockLift = f
 		case "bn":

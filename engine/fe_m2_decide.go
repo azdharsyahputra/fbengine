@@ -37,6 +37,7 @@ type feM2Option struct {
 	kind  int
 	value float64
 	pass  PassOption
+	terms feM2PassTerms // pass options: the value's named terms (trace)
 }
 
 // feM2PassOptions is Decision.passOptionsInto: every receiver the lane, the
@@ -96,10 +97,10 @@ func (e *MatchEngine) feM2PassOptions(carrier, skip *MatchPlayer, out []feM2Opti
 		speed, vertical := feM2Launch(carrier, travel, opt.Lofted, delivery)
 		feM2BuildRoll(&roll, ballM, to, speed, vertical, opt.Lofted)
 		margin := e.feM2RaceMargin(carrier, cand, &roll, line)
-		if margin < e.cfg.M2.PassMinimumMargin && !opt.Lofted && !delivery && e.cfg.Modules.M10Structure &&
+		if margin < e.cfg.M2.PassMinimumMargin && !opt.Lofted && !delivery && e.cfg.M2.ToFeet &&
 			distance(opt.TargetPoint, cand.Position) > feM2FeetRetry/Pitch_LENGTH_METRES {
 			// To feet (ours): the lead into space is cut off, but the
-			// receiver can stop and take it where he stands (M10).
+			// receiver can stop and take it where he stands (m2.to_feet).
 			feet := opt
 			feet.TargetPoint = cand.Position
 			fto := feM1ToM(feet.TargetPoint)
@@ -118,9 +119,12 @@ func (e *MatchEngine) feM2PassOptions(carrier, skip *MatchPlayer, out []feM2Opti
 		if opt.Lofted {
 			completion *= e.cfg.M2.LoftedCeiling
 		}
-		var value float64
+		// The pass value is M2's alone, as named terms (fe_m2_terms.go):
+		// FE's expected value (core), the M5 cooperation bias and the
+		// progress appetite.
+		var terms feM2PassTerms
 		if delivery {
-			value = e.feM2CrossValue(home, (carrier.Passing+carrier.Vision)*0.5)
+			terms.core = e.feM2CrossValue(home, (carrier.Passing+carrier.Vision)*0.5)
 		} else {
 			// ours: the ball arriving at a marked receiver is worth FE's held()
 			// there (the M8 planner's state value), not the bare threat: the
@@ -130,16 +134,17 @@ func (e *MatchEngine) feM2PassOptions(carrier, skip *MatchPlayer, out []feM2Opti
 				arrived = e.feM2HeldScaled(home, to, e.feM2NearestOpponent(home, to),
 					e.feM2SupportedAt(home, to, carrier, cand), e.cfg.M2.ReceiverLoss)
 			}
-			value = e.feM2PassValue(home, completion, arrived, from, to)
+			terms.core = e.feM2PassValue(home, completion, arrived, from, to)
 		}
 		// FE M5 collective duty bias (Decision.fs:331-376), already in
 		// goal-probability units (fe_m5_collective.go).
-		value += e.FeM5PassBias(carrier, cand)
-		value += e.feM10ProgressBonus(from.X*feM1Dir(home)) * (to.X - from.X) * feM1Dir(home)
+		terms.cooperation = e.FeM5PassBias(carrier, cand)
+		terms.progress = e.feM2ProgressTerm(from.X*feM1Dir(home)) * (to.X - from.X) * feM1Dir(home)
+		value := terms.sum()
 		opt.Utility = value
 		opt.CompletionProbability = completion
 		opt.LaneRisk = 1.0 - completion
-		out = append(out, feM2Option{kind: feM2KindPass, value: value, pass: opt})
+		out = append(out, feM2Option{kind: feM2KindPass, value: value, pass: opt, terms: terms})
 	}
 	return out
 }

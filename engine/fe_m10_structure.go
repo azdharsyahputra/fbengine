@@ -204,25 +204,4 @@ func (e *MatchEngine) feM10BlockLength() float64 {
 	return e.cfg.M10.BlockLength
 }
 
-// Progress appetite (ours, M10): goal-probability units per metre a pass
-// gains, rising up the pitch (own third → middle → final third, by the
-// carrier's team-frame x). FE's values alone made the side recycle: 38 % of
-// passes backward (real 24 %), only 22 % of receptions under pressure (real
-// 26-36 %) and 92 % kept after reception (real 78-84 %); real players accept
-// that risk, more so near the opponent's goal.
-
-func (e *MatchEngine) feM10ProgressBonus(tx float64) float64 {
-	if !e.cfg.Modules.M10Structure {
-		return 0
-	}
-	const third = 105.0 / 6.0 // 17.5 m: the own third ends at -17.5, the final starts at +17.5
-	switch {
-	case tx <= -third:
-		return e.cfg.M10.ProgressOwn
-	case tx < 0:
-		return hLerp(e.cfg.M10.ProgressOwn, e.cfg.M10.ProgressMid, (tx+third)/third)
-	case tx < third:
-		return hLerp(e.cfg.M10.ProgressMid, e.cfg.M10.ProgressFinal, tx/third)
-	}
-	return e.cfg.M10.ProgressFinal
-}
+// The progress appetite moved to M2 (fe_m2_terms.go, m2.progress_*).

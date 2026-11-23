@@ -102,9 +102,10 @@ func (e *MatchEngine) feM2Trace(carrier *MatchPlayer, choice *feM2Option, option
 			}
 			o := &options[i].pass
 			to := feM1ToM(o.TargetPoint)
-			fmt.Fprintf(e.diag.out(), "   opt prog=%.1f d=%.1f comp=%.2f val=%.4f lofted=%v recvNear=%.1f\n",
+			t := options[i].terms
+			fmt.Fprintf(e.diag.out(), "   opt prog=%.1f d=%.1f comp=%.2f val=%.4f core=%.4f coop=%.4f progress=%.4f lofted=%v recvNear=%.1f\n",
 				(to.X-here.X)*feM1Dir(carrier.IsHomeTeam), feM1Dist(here, to), o.CompletionProbability,
-				options[i].value, o.Lofted, e.feM2NearestOpponent(carrier.IsHomeTeam, to))
+				options[i].value, t.core, t.cooperation, t.progress, o.Lofted, e.feM2NearestOpponent(carrier.IsHomeTeam, to))
 		}
 	}
 }
