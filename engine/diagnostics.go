@@ -15,6 +15,9 @@ type Diagnostics struct {
 	M2Trace int
 	// Audit enables the read-only probe (audit_probe.go).
 	Audit bool
+	// Slots records the Team Shape Controller's slots in the replay (shadow mode,
+	// team_shape.go); read-only.
+	Slots bool
 	// Out receives trace lines; nil means os.Stderr.
 	Out io.Writer
 }

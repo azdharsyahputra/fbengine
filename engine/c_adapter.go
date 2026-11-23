@@ -54,6 +54,10 @@ type ReplayData struct {
 	ConfigHash string
 	// Audit is the probe summary when Diagnostics.Audit is on.
 	Audit string
+	// Slots: the Team Shape Controller's slot per player and sample, same layout
+	// as the players in Frames (x, y decimetres; -1 without a slot). Only with
+	// Diagnostics.Slots (shadow mode).
+	Slots []int32
 	// Clock is the match clock, run-length: pairs (sample, match second)
 	// at every change of the whole match second (first half from 0, second
 	// from 2700); the clock stops during some stoppages, so it is not the
@@ -138,6 +142,16 @@ func RunReplayWith(home, away *Lineup, homeName, awayName string, seed uint32, t
 			}
 			out.capture(e, prev, cur, a)
 			out.Live = append(out.Live, live)
+			if e.diag.Slots {
+				slots, ok := e.teamShapeSlots()
+				for i := range slots {
+					if !ok[i] {
+						out.Slots = append(out.Slots, -1, -1)
+						continue
+					}
+					out.Slots = append(out.Slots, dm(slots[i][0]), dm(slots[i][1]))
+				}
+			}
 			next += sample
 		}
 		prev = cur

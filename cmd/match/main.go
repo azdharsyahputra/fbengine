@@ -10,7 +10,8 @@
 //   - --config=FILE: the EngineConfig in FILE (a config JSON, or a schema-2
 //     replay's meta.config, hash-checked); the overrides are then ignored.
 //
-// Diagnostics (never change the match): FMENGINE_M2TRACE=1|2|3, FMENGINE_AUDIT=1.
+// Diagnostics (never change the match): FMENGINE_M2TRACE=1|2|3, FMENGINE_AUDIT=1,
+// FMENGINE_SLOTS=1 (Team Shape Controller slots in the replay, shadow mode).
 //
 // Reproduction (Phase 2 / F): --reproduce=REPLAY replays the match recorded in
 // REPLAY's meta (clubs, formation, seed, EngineConfig) and compares the
@@ -102,6 +103,9 @@ type vReplay struct {
 	// Clock: run-length match clock, pairs (sample, match second).
 	Clock []int32 `json:"clock,omitempty"`
 	Meta  vMeta   `json:"meta"`
+	// Slots: Team Shape Controller slots (shadow mode, FMENGINE_SLOTS=1), same
+	// layout as the players in Frames.
+	Slots []int32 `json:"slots,omitempty"`
 }
 
 func team(sq *data.Squad) vTeam {
@@ -188,6 +192,7 @@ func play(spec matchSpec) (vReplay, *engine.ReplayData, error) {
 	}
 	v.Live = string(live)
 	v.Clock = rep.Clock
+	v.Slots = rep.Slots
 	v.Meta = vMeta{Schema: engine.ReplaySchema, Engine: "fm-engine-go", Seed: rep.Seed, TPS: rep.TPS,
 		Home: home.Club, Away: away.Club, Formation: spec.Formation,
 		Data:   vData{CSV: spec.CSV, SHA256: fileSHA256(spec.CSV), LineupSHA256: lineupHash(home, away)},
@@ -441,7 +446,7 @@ func main() {
 		os.Getenv("FMENGINE_M2TUNE"), os.Getenv("FMENGINE_M10"), os.Getenv("FMENGINE_M1")); len(ignored) > 0 {
 		fmt.Fprintf(os.Stderr, "warning: unknown override keys ignored: %v\n", ignored)
 	}
-	diag := engine.Diagnostics{Audit: os.Getenv("FMENGINE_AUDIT") != "", Out: os.Stderr}
+	diag := engine.Diagnostics{Audit: os.Getenv("FMENGINE_AUDIT") != "", Slots: os.Getenv("FMENGINE_SLOTS") != "", Out: os.Stderr}
 	if t := os.Getenv("FMENGINE_M2TRACE"); t != "" {
 		diag.M2Trace, _ = strconv.Atoi(t)
 		if diag.M2Trace == 0 {

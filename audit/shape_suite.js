@@ -2,7 +2,10 @@
 // shape_suite.js: team-shape metrics (PLAN-team-shape.md §3, S1-S10 + speeds) for any
 // schema-2 replay (engine, Metrica full tracking, SkillCorner broadcast).
 //
-// Usage: node shape_suite.js [--json] replay.js [replay2.js ...]
+// Usage: node shape_suite.js [--json] [--slots] replay.js [replay2.js ...]
+//   --slots: shape metrics (S1-S8) from the replay's Team Shape Controller slots (shadow mode,
+//   FMENGINE_SLOTS=1) instead of the players; possession, receptions and speeds stay on the
+//   players. Also reports the median player-to-slot distance per phase.
 //   Several files: per-file values are averaged (each metric is a per-file median or mean).
 //
 // Definitions (live samples only, via cek/_live.js):
@@ -17,9 +20,10 @@
 // Metrics per team-sample (att = side in possession, def = the other):
 // S1 width   y p10-p90 (m)           S2 length  x p10-p90 (m)
 // S3 pairs   teammate pairs < 4 m;   nn  nearest-teammate distance (median of the 10)
-// S4 lines   gaps between role-group mean depths: back(FB+CB)-DM, DM-AM, AM-ST
+// S4 lines   gaps between depth-rank groups of the frame: 4 deepest (back), next 2, next 3,
+//            most advanced (identity-free)
 // S5 lanes   (att) occupied of 5 width lanes; % with both outer lanes occupied
-// S6 backU   back line mean depth from own goal; backRel = back line minus ball depth
+// S6 backU   back line (4 deepest) mean depth from own goal; backRel = minus ball depth
 // S7 mark    (def) defenders within 3 m of an attacker; attacker->nearest defender median
 // S8 shift   (def) team centroid y offset / ball y offset (ball > 10 m off centre)
 // S9 support (att) teammates within 15 m of the holder: ahead / level(±3 m) / behind
@@ -29,9 +33,13 @@
 const path = require('path');
 const { deadMask } = require('/Users/csadeveloper/fm/fm-game/viewer/cek/_live.js');
 
-const args = process.argv.slice(2);
-const asJson = args[0] === '--json';
-const files = asJson ? args.slice(1) : args;
+let args = process.argv.slice(2), asJson = false, useSlots = false;
+for (;;) {
+  if (args[0] === '--json') { asJson = true; args = args.slice(1); continue; }
+  if (args[0] === '--slots') { useSlots = true; args = args.slice(1); continue; }
+  break;
+}
+const files = args;
 if (!files.length) { console.error('usage: node shape_suite.js [--json] replay.js ...'); process.exit(1); }
 
 const q = (a, p) => { if (!a.length) return NaN; const s = Float64Array.from(a).sort(); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
@@ -48,6 +56,11 @@ function measure(file) {
   const P = (t, k) => [F[t * S + 3 + 2 * k] / 10, F[t * S + 4 + 2 * k] / 10];
   const B = t => [F[t * S] / 10, F[t * S + 1] / 10, F[t * S + 2] / 10];
   const role = k => (k < 11 ? R.home : R.away).players[k % 11].pos;
+  if (useSlots && !Array.isArray(R.slots)) throw new Error(`${file}: no slots (run with FMENGINE_SLOTS=1)`);
+  const SL = useSlots ? R.slots : null;
+  // shape position: the slot in --slots mode, the player otherwise
+  const Q = useSlots ? (t, k) => { const x = SL[t * 44 + 2 * k]; return x < 0 ? [-1, -1] : [x / 10, SL[t * 44 + 2 * k + 1] / 10]; } : P;
+  const slotDist = {};
   const out = {};
   const bucket = k => (out[k] = out[k] || { w: [], l: [], pairs: [], nn: [], bd: [], da: [], as: [], lanes: [], outer: [], backU: [], backRel: [], mark3: [], markD: [], shift: [], sAhead: [], sLevel: [], sBehind: [], n: 0 });
   const recv = {}, spd = [0, 0, 0, 0, 0];
@@ -79,7 +92,9 @@ function measure(file) {
     if (team < 0 || t % 2) continue; // shape metrics at 2 Hz
     const settled = (t - since) >= 4 * tps;
     const pts = [[], []];
-    for (const tm of [0, 1]) for (let k = tm * 11 + 1; k < tm * 11 + 11; k++) { const p = P(t, k); if (p[0] >= 0) pts[tm].push({ k, x: p[0], y: p[1], r: role(k) }); }
+    for (const tm of [0, 1]) for (let k = tm * 11 + 1; k < tm * 11 + 11; k++) { const p = Q(t, k); if (p[0] >= 0) pts[tm].push({ k, x: p[0], y: p[1], r: role(k) }); }
+    if (useSlots) for (let k = 0; k < 22; k++) { if (k % 11 === 0) continue; const a = P(t, k), s = Q(t, k); if (a[0] < 0 || s[0] < 0) continue;
+      const key = ((k < 11 ? 0 : 1) === team ? 'att' : 'def') + (settled ? '-settled' : '-trans'); (slotDist[key] = slotDist[key] || []).push(Math.hypot(a[0] - s[0], a[1] - s[1])); }
     if (pts[0].length < 10 || pts[1].length < 10) continue;
     used++;
     for (const tm of [0, 1]) {
@@ -94,8 +109,10 @@ function measure(file) {
       b.w.push(q(ys, 0.9) - q(ys, 0.1)); b.l.push(q(xs, 0.9) - q(xs, 0.1));
       let pairs = 0; const nn = me.map((p, i) => { let m = 1e9; me.forEach((o, j) => { if (i !== j) { const d = Math.hypot(p.x - o.x, p.y - o.y); m = Math.min(m, d); if (j > i && d < 4) pairs++; } }); return m; });
       b.pairs.push(pairs); b.nn.push(q(nn, 0.5));
-      const grp = g => { const a = me.filter(p => g.includes(p.r)).map(p => u(p.x)); return a.length ? mean(a) : NaN; };
-      const back = grp(['FB', 'CB']), dm = grp(['DM']), am = grp(['AM']), st = grp(['ST']);
+      // lines by depth rank in this frame (identity-free: real players swap roles; the
+      // same definition for real data, the engine and the TSC slots)
+      const us = me.map(p => u(p.x)).sort((a, c) => a - c);
+      const back = mean(us.slice(0, 4)), dm = mean(us.slice(4, 6)), am = mean(us.slice(6, 9)), st = us[9];
       b.bd.push(dm - back); b.da.push(am - dm); b.as.push(st - am);
       b.backU.push(back); b.backRel.push(back - ub);
       if (side === 'att') {
@@ -114,7 +131,8 @@ function measure(file) {
       }
     }
   }
-  const res = { file: path.basename(file), frames: used, groups: {}, recv: {}, speed: {} };
+  const res = { file: path.basename(file), frames: used, groups: {}, recv: {}, speed: {}, slotDist: {} };
+  for (const [k, v] of Object.entries(slotDist)) res.slotDist[k] = q(v, 0.5);
   for (const [k, b] of Object.entries(out)) {
     res.groups[k] = {
       n: b.n, width: q(b.w, 0.5), length: q(b.l, 0.5), pairs: mean(b.pairs), nn: q(b.nn, 0.5),
@@ -144,6 +162,7 @@ for (const z of ['own', 'mid', 'final']) {
   const g = {}; for (const role of ['CB', 'FB', 'DM', 'AM', 'ST']) g[role] = mean(rs.map(r => r[role] || 0)); g.n = mean(rs.map(r => r.n)); avg.recv[z] = g;
 }
 for (const k of ['<2', '2-4', '4-5.5', '5.5-7', '>7']) avg.speed[k] = mean(all.map(r => r.speed[k]));
+avg.slotDist = {}; for (const k of new Set(all.flatMap(r => Object.keys(r.slotDist)))) avg.slotDist[k] = mean(all.map(r => r.slotDist[k]).filter(Number.isFinite));
 
 if (asJson) { console.log(JSON.stringify(avg)); process.exit(0); }
 const f1 = v => Number.isFinite(v) ? v.toFixed(1) : '-';
@@ -160,3 +179,4 @@ for (const o of order) for (const z of ['own', 'mid', 'final']) {
 }
 console.log('receptions by role (%): ' + Object.entries(avg.recv).map(([z, g]) => `${z}: ` + ['CB', 'FB', 'DM', 'AM', 'ST'].map(r => `${r} ${f0(g[r])}`).join(' ')).join(' | '));
 console.log('speed shares (%): ' + Object.entries(avg.speed).map(([k, v]) => `${k} ${f1(v)}`).join(' | '));
+if (useSlots) console.log('player-to-slot median (m): ' + Object.entries(avg.slotDist).map(([k, v]) => `${k} ${f1(v)}`).join(' | '));
