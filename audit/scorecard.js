@@ -2,7 +2,10 @@
 // scorecard.js: one combined score for the team shape (PLAN-team-shape.md §5.1). Every shape
 // metric for possession, defence and transition in every zone, the receptions by role, the
 // speed shares and long carries are judged AT ONCE against the Metrica full-tracking range.
-// The old cek metrics are guards (ranges from F0, Metrica and SkillCorner).
+// The old cek metrics are guards (ranges from F0, Metrica and SkillCorner), in two groups:
+//   shape guards (the Team Shape Controller's job, gate of F2/F3): chase3, liar5, dmAm,
+//     own3in5, mid3in5, recvPress;
+//   decision guards (the carrier's choices, M2; gate of F5): mundur, kept, bwFinal, bwMid, possMed.
 // A change is accepted only if the total score improves and no guard breaks.
 //
 // Usage: node scorecard.js [--guard EVAL_DIR] [--brief] [--slots] replay.js [...]
@@ -102,12 +105,13 @@ const score = total / n;
 // guards (old cek metrics; ranges = Metrica .. SkillCorner from F0, widened a little)
 const GUARD = { chase3: [5, 10], liar5: [6, 10.5], mundur: [22, 35], dmAm: [7, 10.5], own3in5: [36, 50], mid3in5: [42, 54],
   recvPress: [24, 37], kept: [74, 86], bwFinal: [27, 48], bwMid: [22, 34], possMed: [4.5, 7.5] };
+const DECISION = new Set(['mundur', 'kept', 'bwFinal', 'bwMid', 'possMed']);
 const guards = [];
 if (guardDir) {
   const line = execFileSync('node', [path.join(HERE, 'summary.js'), 'cand', guardDir]).toString();
   for (const [k, [lo, hi]] of Object.entries(GUARD)) {
     const m = line.match(new RegExp(`\\b${k} ([0-9.]+)`)); if (!m) continue;
-    const v = +m[1]; guards.push({ k, v, lo, hi, ok: v >= lo && v <= hi });
+    const v = +m[1]; guards.push({ k, v, lo, hi, ok: v >= lo && v <= hi, decision: DECISION.has(k) });
   }
 }
 
@@ -117,4 +121,7 @@ if (!brief) {
   for (const r of rows.sort((x, y) => (x.info - y.info) || (y.err - x.err))) console.log(`${r.info ? 'info' : r.err <= 1 ? 'ok  ' : 'XX  '} ${r.label.padEnd(36)} ${f(r.target).padStart(6)} ${f(r.tol).padStart(5)} ${f(r.c).padStart(5)} ${r.err.toFixed(2).padStart(5)}`);
 }
 console.log(`SCORE ${score.toFixed(3)} (lower is better) | pass ${pass}/${n} metrics` +
-  (guards.length ? ` | guards ${guards.filter(g => g.ok).length}/${guards.length} ok` + guards.filter(g => !g.ok).map(g => ` [${g.k} ${g.v} not in ${g.lo}-${g.hi}]`).join('') : ''));
+  (guards.length ? ['shape', 'decision'].map(kind => {
+    const gs = guards.filter(g => g.decision === (kind === 'decision'));
+    return ` | ${kind} guards ${gs.filter(g => g.ok).length}/${gs.length} ok` + gs.filter(g => !g.ok).map(g => ` [${g.k} ${g.v} not in ${g.lo}-${g.hi}]`).join('');
+  }).join('') : ''));

@@ -229,6 +229,15 @@ Pemicunya: kebijakan tersembunyi di M3 yang membatalkan perbaikan go15.
 4. **Yang boleh disetel cuma parameter TSC/composer** (tabel formasi, batas blok, jarak minimal, kuota, kelas kecepatan). Disapu bersama dan dinilai pakai scorecard yang sama. Knob per gejala di modul lain dilarang.
 5. **Statistik (tembakan, foul, dll.) tidak disentuh** sampai scorecard bentuk lolos (F4).
 
+**Penjaga dipisah (2026-11-24, keputusan lu):**
+
+| Kelompok | Metrik | Jadi gerbang |
+|---|---|---|
+| Penjaga bentuk | chase≥3, bola liar ≥5, DM–AM, tekanan build-up (own3in5), tekanan tengah (mid3in5), penerima ditekan (recvPress) | F2/F3 |
+| Penjaga keputusan | umpan mundur, bola dijaga (kept), umpan mundur di sepertiga akhir/tengah, lama penguasaan (possMed) | F5 (kalibrasi M2 di atas bentuk baru) |
+
+`scorecard.js --guard` melaporkan keduanya terpisah.
+
 ### 5.2 Tahapan
 
 Tahapan ini urutan **bangun**, bukan urutan **nyalakan**. Jalur baru dinyalakan dan dinilai sebagai satu kesatuan. Jalur lama (go16) tetap identik byte selama `Modules.TeamShape = false`.
