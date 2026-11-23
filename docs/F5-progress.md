@@ -312,3 +312,24 @@ Petunjuk untuk nanti: sliding pemulihan dalam 20 m dari gawang (~59 per laga, me
 Target bergerak konsisten, tetapi penjaga recvPress jebol di dua set dan gol naik ~0.6. **Tidak dijadikan default**; flag disimpan (off).
 
 **Pola:** recvPress duduk di tepi atas rentang (36–37). Hampir setiap perubahan yang melonggarkan pertahanan (`ss` rendah, `tr`, `tg`, `bt`) mendorongnya ke 38–39 dan menaikkan gol. Sebelum melonggarkan pertahanan lagi, recvPress perlu dibedah sendiri (siapa yang menekan penerima, dan apakah definisinya sebanding dengan Metrica).
+
+## Ronde 14: bedah recvPress
+
+`press.js`: penerimaan bola = pergantian pemegang dalam satu tim (jeda ≤4 dtk); "ditekan" = lawan outfield terdekat <4 m saat menerima. Penjaga lama memakai angka gabungan, rentang 24–37 (Metrica..SkillCorner).
+
+`audit/recvzone.js` memecah per zona penerima (dari arah serang timnya):
+
+| Zona | Ditekan: Metrica / SkillCorner | Ditekan: default / `bt=1` | Dipertahankan: Metrica / SkillCorner | Dipertahankan: default |
+|---|---|---|---|---|
+| Sepertiga sendiri | 23% / 16% | **11%** / 13% | 74% / 87% | **98%** |
+| Tengah | 22% / 32% | **37%** / 37% | 83% / 86% | **93%** |
+| Sepertiga akhir | 38% / 57% | **63%** / 64% | 62% / 69% | **82%** |
+| Porsi penerimaan (sendiri/tengah/akhir) | 20/56/24 / 29/51/20 | 28/47/26 / 26/46/29 | | |
+| Gabungan | 26% / 32% | 37% / 38–39% | | |
+
+**Temuan:**
+1. Angka gabungan menyembunyikan dua error berlawanan: build-up lawan terlalu jarang ditekan (11% vs 16–23%), tengah dan sepertiga akhir terlalu sering (37% vs 22–32%, 63% vs 38–57%). Default lolos penjaga lama secara kebetulan; per zona ketiganya di luar rentang.
+2. `bt=1` tidak memperburuk zona mana pun (sepertiga sendiri sedikit membaik). Angka gabungan naik karena porsi penerimaan di sepertiga akhir bertambah (26% → 29%), bukan karena tekanan per zona.
+3. Masalah nyata: bola dipertahankan terlalu mudah di semua zona (penjaga `kept` 91, rentang 74–86), dan build-up lawan hampir tidak ditekan.
+
+**Usulan (menunggu keputusan):** ganti penjaga recvPress gabungan dengan tiga penjaga per zona (rentang Metrica..SkillCorner) supaya tidak menghukum pergeseran komposisi.
