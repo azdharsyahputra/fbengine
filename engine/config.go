@@ -365,7 +365,7 @@ func DefaultConfig() EngineConfig {
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
 		M3: M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
-		M6: M6Config{SlideDepth: 35, BlockReach: 0.7, BoxFoulScale: 0.03},
+		M6: M6Config{SlideDepth: 20, BlockReach: 0.7, BoxFoulScale: 0.03},
 		TeamShape: TeamShapeConfig{RunQuota: 2, OverlapQuota: 1, BoxQuota: 2, PressQuota: 1,
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,

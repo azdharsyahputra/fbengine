@@ -224,3 +224,39 @@ Serangan sudah realistis; engine menembak 2× lebih sering per serangan.
 Gol sekarang di dalam ±20% EPL (3.28).
 
 **Sisa statistik:** tembakan ~19 per tim (EPL ~13), foul ~23 per tim (10.5), kartu merah 1.3 per laga (0.15), corner ~8 per tim (5.3).
+
+## Ronde 10: foul dan kartu
+
+**Ukur** (default `bx=0.03`, 10 seed, per laga): 215 percobaan tekel (EPL kira-kira 40–50), 46 foul.
+
+| | Sliding | Standing |
+|---|---|---|
+| Percobaan | 112 | 103 |
+| Meleset | 60 (53%) | 12 (11%) |
+| Menang | 24 | 45 |
+| Foul | ~28 (mayoritas reckless) | ~6 |
+
+Merah 1.3 per laga = 0.5 merah langsung + 0.8 kuning kedua (kuning 7.9 per laga, EPL ~4.2).
+
+**Hipotesis:** sliding masih terlalu sering; `SlideDepth` 35 m masih mencakup sebagian besar fase bertahan.
+
+| | Foul/tim | Kuning | Merah | Sliding/laga | Gol | carry25 | Skor | Penjaga |
+|---|---|---|---|---|---|---|---|---|
+| `gz=35` (10 seed) | 22.9 | 7.9 | 1.3 | 112 | 3.4 | 22 | 0.768 | 2/6 |
+| `gz=20` (10 seed) | 19.7 | 5.0 | 0.7 | 83 | 4.5 | 22 | 0.745 | 3/6 |
+| `gz=1` (10 seed) | 8.3 | 1.9 | 0.0 | 35 | 3.6 | 32 | 0.804 | 2/6 |
+
+`gz=1` ditolak: tanpa sliding bek tidak bisa menghentikan pembawa bola (carry25 32, skor memburuk).
+
+**Cek 20 seed** (tambahan seed 1 2 4 9 10 12 14 15 16 17):
+
+| 20 seed | Gol | Foul/tim | Kuning | Merah | Skor |
+|---|---|---|---|---|---|
+| `gz=35` | 3.8 | 22.7 | 8.6 | 1.1 | 0.764 |
+| **`gz=20` (default baru)** | 4.3 | 19.7 | 5.6 | 0.75 | 0.769 |
+
+Disiplin membaik jelas, bentuk netral. Selisih gol +0.5 sekitar 0.8 SD di 20 seed; dipantau.
+
+**Pelajaran noise:** antara dua set 10 seed, skor bentuk bergeser ~0.03 dan gol ~0.6 untuk config yang sama. Perbaikan skor di bawah ~0.03 dari ronde sebelumnya belum tentu nyata. Keputusan statistik gol sebaiknya pakai 20 seed.
+
+**Sisa akar foul:** percobaan tekel ~196 per laga, ~4× EPL. First defender (intent PRESS_BALL) menekel begitu bola masuk jangkauan.
