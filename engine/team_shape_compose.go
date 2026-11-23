@@ -308,31 +308,39 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 			}
 		}
 	}
-	// 1. first defender + cover against a carrier
+	// 1. first defender + cover against a carrier, or (pressing trigger) against the
+	// intended receiver of an opponent pass in flight, so the presser leaves with the pass
 	// a keeper on the ball is not chased (real keepers are left about 10 m); the block holds
-	if c := e.findMatchPlayer(e.ball.PossessedBy); c != nil && c.IsHomeTeam != home && !c.IsGoalkeeper {
+	c := e.findMatchPlayer(e.ball.PossessedBy)
+	if c == nil && e.ball.IsPass && !e.ball.IsShot && e.ball.PassByHome != home && ts.PassTrigger {
+		c = e.findMatchPlayer(e.ball.IntendedReceiver)
+	}
+	if c != nil && c.IsHomeTeam != home && !c.IsGoalkeeper {
 		cp := pm(c)
 		pred := [2]float64{cp[0] + c.Velocity.X*0.3, cp[1] + c.Velocity.Y*0.3}
 		press := toward(pred, goal, e.cfg.M1.ContainDistance)
 		best, bt := -1, math.Inf(1)
 		defenders(func(i int, p *MatchPlayer) bool {
 			t := e.bodyTimeTo(p, feM1ToM(Vector2F{press[0] / Pitch_LENGTH_METRES, press[1] / Pitch_WIDTH_METRES}), 1.0)
-			if i == st.fd-1 {
-				t -= ts.KeepTime // hysteresis: the engaged defender keeps the job
+			if i == st.fd-1 && st.fdCarrier == c {
+				t -= ts.KeepTime // hysteresis: the engaged defender keeps the job (same carrier)
 			}
 			if t < bt {
 				best, bt = i, t
 			}
 			return true
 		})
-		// organised press: the ball deep in the opponent's half (Press.Depth past halfway)
-		inPress := ub-Pitch_LENGTH_METRES/2 >= e.cfg.Press.Depth
+		// organised press: the ball deep in the opponent's half (Press.Depth past halfway);
+		// counter-press: the first seconds after losing the ball, anywhere but near the
+		// own goal (real carriers who just won it are pressed ~55% of the time)
+		inPress := ub-Pitch_LENGTH_METRES/2 >= e.cfg.Press.Depth ||
+			(e.getSimulatedSeconds()-st.since < ts.CounterPress && ub >= ts.EngageDepth)
 		window := e.cfg.M1.ContainWindow
 		if inPress {
 			window = e.cfg.Press.Window
 		}
 		if best >= 0 && (bt <= window || ub < ts.EngageDepth) {
-			st.fd = best + 1
+			st.fd, st.fdCarrier = best+1, c
 			used[best] = true
 			jobs = append(jobs, teamShapeJob{composeRequest{Player: best, Class: composeBall, Target: press, Priority: 10,
 				Owner: TargetOwner_TSC, Reason: TargetReason_M1_FIRST_DEFENDER}, PlayerIntent_PRESS_BALL, true, -1})
@@ -404,7 +412,11 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 			op := pm(o)
 			u, _ := fr.toFrame(op[0], op[1])
 			danger := ub < ts.DangerDepth && u < ts.MarkZone+5
-			if danger || math.Hypot(op[0]-bx, op[1]-by) < ts.NearBall {
+			near := ts.NearBall
+			if ub-Pitch_LENGTH_METRES/2 >= e.cfg.Press.Depth {
+				near = ts.PressMarkRadius // a high press picks up the build-up's options man to man
+			}
+			if danger || math.Hypot(op[0]-bx, op[1]-by) < near {
 				atts = append(atts, att{i, math.Hypot(op[0]-goal[0], op[1]-goal[1]), danger})
 			}
 		}

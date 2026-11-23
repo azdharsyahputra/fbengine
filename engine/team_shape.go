@@ -37,8 +37,9 @@ type teamShapeState struct {
 	// assignment's hysteresis and change the match).
 	last   [][2]float64
 	lastOK []bool
-	// the native first defender (slot index + 1; 0 = none)
-	fd int
+	// the native first defender (player index + 1; 0 = none) and the carrier he engages
+	fd        int
+	fdCarrier *MatchPlayer
 	// smoothed ball the shape follows (Modules.TeamShape)
 	anchor     [2]float64
 	anchorSet  bool

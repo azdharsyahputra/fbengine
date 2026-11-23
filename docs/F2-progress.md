@@ -98,6 +98,38 @@ Bagian dari [PLAN-team-shape.md](PLAN-team-shape.md). **Checkpoint:** `Modules.T
 2. chase≥3 dan bola liar ≥5 tidak turun di bawah ~18–20 dengan aturan kecepatan apa pun, dan tiap penurunan dibayar gol atau giring panjang.
 3. Sebagian penjaga lama adalah urusan keputusan (M2), bukan bentuk: penguasaan bola (≈10 dtk vs 4.5–7.5) dan bola dijaga (87–89% vs 74–86%). Itu tahap kalibrasi keputusan (F5).
 
+## Putaran 3 (2026-11-24): tekanan build-up (10 seed)
+
+**Temuan (Metrica):** pembawa bola di sepertiga sendiri ditekan dalam 5 m:
+- 51–56% sesaat setelah merebut bola (counter-press);
+- 32–34% saat tenang.
+
+Kita: 22–25% / 12–14%. First defender selalu **mulai dari diam**, karena baru ditunjuk setelah bola dikontrol (kecepatan rata-rata saat masih jauh 4.5 m/s).
+
+**Yang tidak berpengaruh:**
+- histeresis first defender per pembawa bola;
+- counter-press 4 dtk;
+- penandaan 40 m dari bola di zona press.
+
+Ketiganya tetap di kode: perlu bersama pressing trigger, dan murah.
+
+**Kuncinya: pressing trigger** (`team_shape.pass_trigger`). Selama umpan lawan di udara, first defender langsung menuju penerima yang dituju (`IntendedReceiver`), jadi berangkat bersama umpan.
+
+| | Checkpoint | + pressing trigger | Asli |
+|---|---|---|---|
+| Skor | 0.99 | **0.907** | — |
+| Lolos | 85/135 | **93/135** | — |
+| Penjaga bentuk | 1/6 | 2/6 | — |
+| own3in5 | 17 | **37** ✓ | 36–50 |
+| recvPress | 21 | **31** ✓ | 24–37 |
+| Ditekan setelah merebut / tenang | 22 / 13% | **45 / 35%** | 51–56 / 32–34% |
+| mid3in5 | 43 | 57 | 42–54 (sedikit lewat) |
+| Giring ≥25 m (probe) | 28 | **17** | — |
+| Gol | 3.1 | 3.5 | — |
+| Foul | 22 | 27 | — |
+
+Sisa penjaga bentuk yang besar: chase≥3 (23) dan bola liar ≥5 (27).
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

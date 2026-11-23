@@ -273,6 +273,14 @@ type TeamShapeConfig struct {
 	NearBall float64 `json:"near_ball"` // nb
 	// MarkGoalSide (m): a marker stands this far goal-side of his man.
 	MarkGoalSide float64 `json:"mark_goal_side"` // mg
+	// CounterPress (s): after losing the ball the side presses as in the press zone for
+	// this long (away from its own goal).
+	CounterPress float64 `json:"counter_press"` // cp
+	// PressMarkRadius (m): in the press zone, attackers this close to the ball are marked.
+	PressMarkRadius float64 `json:"press_mark_radius"` // pr
+	// PassTrigger: with an opponent pass in flight the first defender goes for its
+	// intended receiver (he leaves with the pass, not after the control).
+	PassTrigger bool `json:"pass_trigger"` // pt (0/1)
 }
 
 // DefaultConfig returns the go4 defaults (identical to the former package
@@ -325,7 +333,7 @@ func DefaultConfig() EngineConfig {
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
 			DangerDepth: 40, MarkZone: 30, ShiftSpeed: 2.4, WalkZone: 3,
-			NativeDefence: true, KeepTime: 0.75, EngageDepth: 35, CoverGap: 6, MarkRadius: 12, RunnerSpeed: 3.5, PressOption: 20, DefRunSpeed: 4.5, NearBall: 25, MarkGoalSide: 2,
+			NativeDefence: true, KeepTime: 0.75, EngageDepth: 35, CoverGap: 6, MarkRadius: 12, RunnerSpeed: 3.5, PressOption: 20, DefRunSpeed: 4.5, NearBall: 25, MarkGoalSide: 2, CounterPress: 4, PressMarkRadius: 40, PassTrigger: true,
 			TrotSpeed: 2.6, AnchorTime: 3, DepthDev: 5},
 		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
@@ -441,6 +449,12 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.NearBall = f
 			case "mg":
 				c.TeamShape.MarkGoalSide = f
+			case "cp":
+				c.TeamShape.CounterPress = f
+			case "pr":
+				c.TeamShape.PressMarkRadius = f
+			case "pt":
+				c.TeamShape.PassTrigger = f != 0
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":

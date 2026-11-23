@@ -21,7 +21,8 @@ import (
 // cc92ffeb… go15: m3.catch_up_run, m10 full-back trail 2 / weak 12 / start -20, overlap_lead 6.
 // 8872a1c4… go16: m10.possession_step 1.6, possession_step_max 30.
 // 8bbfec1d… F2 checkpoint: modules.team_shape (off) + team_shape section; go16 play unchanged.
-const goldenDefaultHash = "8bbfec1db9193b803fd48d1f514fa3ecddd428cfe065f65c103089f59ef98b84"
+// a17389cf… F2b: native counter-press, press-zone man marking, pressing trigger (TS still off).
+const goldenDefaultHash = "a17389cfdd14a55c059831cfe3d915bf25421a7ffd2c7a5d1d9a7333d3e51cc9"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {
