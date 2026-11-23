@@ -152,7 +152,9 @@ func NewScenarioDecision() ScenarioDecision {
 type MatchPlayer struct {
 	// TargetOwner is the layer that last set the target this player steers
 	// to (target_owner.go); observability only.
-	TargetOwner    TargetOwner
+	TargetOwner TargetOwner
+	// TargetReason is why the owner chose it (target_owner.go).
+	TargetReason   TargetReason
 	Player         *Player
 	IsHomeTeam     bool
 	Position       Vector2F

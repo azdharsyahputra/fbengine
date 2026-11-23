@@ -104,7 +104,7 @@ func (e *MatchEngine) auditStep() {
 		if a.ownerIntent == nil {
 			a.ownerIntent = map[string]int{}
 		}
-		a.ownerIntent[p.TargetOwner.String()+" "+auditIntent(p.Intent)]++
+		a.ownerIntent[p.TargetOwner.String()+":"+p.TargetReason.String()]++
 	}
 	if e.state != MatchState_PLAYING {
 		a.poss.sinceHeld, a.poss.sawPass, a.poss.sawShot = 0, false, false
@@ -297,8 +297,8 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 		ot += n
 	}
 	sort.Slice(oi, func(i, j int) bool { return oi[i].n > oi[j].n || oi[i].n == oi[j].n && oi[i].k < oi[j].k })
-	fmt.Fprintf(w, "AUDIT target owner × intent (live, top 12):")
-	for i := 0; i < len(oi) && i < 12; i++ {
+	fmt.Fprintf(w, "AUDIT target owner:reason (live, all):")
+	for i := 0; i < len(oi); i++ {
 		fmt.Fprintf(w, " %s %.1f%% |", oi[i].k, 100*float64(oi[i].n)/float64(ot))
 	}
 	fmt.Fprintln(w)

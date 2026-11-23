@@ -720,5 +720,6 @@ func (e *MatchEngine) feM9HalfTimeWalk(dt float64) {
 		p.Velocity = Vector2F{}
 		p.MovementTarget = to
 		p.TargetOwner = TargetOwner_M9
+		p.TargetReason = TargetReason_HALF_TIME_WALK
 	}
 }

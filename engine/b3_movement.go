@@ -396,6 +396,7 @@ func (e *MatchEngine) updateRestartMovement(dt float64) {
 			player.Intent = PlayerIntent_RECOVER_SHAPE
 		}
 		player.TargetOwner = TargetOwner_P12
+		player.TargetReason = TargetReason_RESTART
 		if m9 {
 			player.TargetOwner = TargetOwner_M9
 		}

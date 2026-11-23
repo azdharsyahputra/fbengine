@@ -786,6 +786,7 @@ func (e *MatchEngine) feM1Apply(home bool, side *feM1Side, s *feM1State) {
 		p.IsPressing = pressing
 		p.TacticalTarget = target
 		p.TargetOwner = TargetOwner_M1
+		p.TargetReason = feM1TargetReason(task.role)
 		p.UrgentMovement = urgent
 		side.effort[slot] = effort
 		side.individual[slot] = individual

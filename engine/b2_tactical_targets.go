@@ -162,6 +162,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 		}
 		previousIntent := player.Intent
 		player.Intent = PlayerIntent_HOLD_SHAPE
+		reason := TargetReason_SHAPE
 		player.IsPressing = false
 		player.IsMakingRun = false
 
@@ -232,12 +233,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			// keep the block target as the shape target; feM1Assign sets the task.
 			e.feM1CaptureShape(player, target)
 			player.TacticalTarget = target
+			player.TargetReason = TargetReason_M1_SHAPE
 			player.TargetOwner = TargetOwner_P12 // feM1Assign takes it over below
 			player.UrgentMovement = false
 			continue
 		}
 		if player == carrier {
 			player.Intent = PlayerIntent_CARRY_BALL
+			reason = TargetReason_CARRY
 			target = player.Position
 			target.X += attackDirection *
 				(Shape_CARRIER_BASE_ADVANCE +
@@ -283,6 +286,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			if e.cfg.Modules.M4Shape {
 				if guarded := e.feM4BylineGuard(player, target); guarded != target {
 					owner = TargetOwner_M4
+					reason = TargetReason_BYLINE
 					target = guarded
 				}
 			}
@@ -311,8 +315,10 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				runnerSlot := runnerPosition
 				if runnerSlot == 0 {
 					player.Intent = PlayerIntent_RUN_IN_BEHIND
+					reason = TargetReason_RUNNER
 				} else {
 					player.Intent = PlayerIntent_ATTACK_BOX
+					reason = TargetReason_RUNNER_BOX
 				}
 				player.IsMakingRun = true
 				defenderLine := lineFor(player.IsHomeTeam)
@@ -388,6 +394,10 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					// the side away from the ball, the wide man to the far post; both
 					// stay onside.
 					player.Intent = PlayerIntent_ATTACK_BOX
+					reason = TargetReason_ARRIVAL
+					if player == farPostRunner {
+						reason = TargetReason_FAR_POST
+					}
 					farPost := player == farPostRunner
 					goalX := b2Sign(player.IsHomeTeam, 1.0, 0.0)
 					ballSide := b2Sign(carrier.Position.Y < Pitch_CENTRE, -1.0, 1.0)
@@ -405,6 +415,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 							Shape_MIDFIELD_ARRIVAL_WIDTH)
 				} else if player == overlappingFullback {
 					player.Intent = PlayerIntent_OVERLAP
+					reason = TargetReason_OVERLAP
 					target.X += attackDirection *
 						Shape_FINAL_THIRD_FULLBACK_OVERLAP
 				} else if dutyOK {
@@ -413,12 +424,19 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					player.Intent = PlayerIntent_OFFER_SUPPORT
 					target = dutyTarget
 					owner = TargetOwner_M5
+					reason = [3]TargetReason{TargetReason_DUTY_LINK, TargetReason_DUTY_RUNNER, TargetReason_DUTY_SECURITY}[dutyKind]
 					if dutyKind == feM5Runner && e.feM5RunnerRuns(player.IsHomeTeam) {
 						player.Intent = PlayerIntent_RUN_IN_BEHIND
 						player.IsMakingRun = true
 					}
 				} else if supportPosition >= 0 {
 					player.Intent = PlayerIntent_OFFER_SUPPORT
+					reason = TargetReason_SUPPORT_NEAR
+					if supportPosition == Shape_SQUARE_SUPPORT_SLOT {
+						reason = TargetReason_SUPPORT_SQUARE
+					} else if supportPosition == Shape_TRAILING_SUPPORT_SLOT {
+						reason = TargetReason_SUPPORT_TRAILING
+					}
 					supportSlot := supportPosition
 					primarySide := b2Sign(
 						supporters[Shape_NEAR_SUPPORT_SLOT] != nil &&
@@ -462,6 +480,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					}
 				} else if forward && (!e.cfg.Modules.M5Collective || player == shortForward) {
 					player.Intent = PlayerIntent_OFFER_SUPPORT
+					reason = TargetReason_SHORT_FORWARD
 					// Not every attacker runs beyond the defence. A complementary
 					// forward checks toward the ball to form a passing triangle and drag
 					// a marker.
@@ -502,9 +521,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				target = e.feM10GetOpen(player, target, carrier, lineFor(player.IsHomeTeam))
 				if auditM4 != auditBase {
 					owner = TargetOwner_M4
+					reason = TargetReason_SPACING
 				}
 				if auditM10S != auditM4 || target != auditM10S {
 					owner = TargetOwner_M10
+					reason = TargetReason_STRUCTURE
+					if target != auditM10S {
+						reason = TargetReason_GET_OPEN
+					}
 				}
 				if e.diag.Audit {
 					e.auditLayers(player, dutyOK, auditBase, auditM4, auditM10S, target)
@@ -517,6 +541,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			}
 			if pressers[0] == player {
 				player.Intent = PlayerIntent_PRESS_BALL
+				reason = TargetReason_PRESS
 				player.IsPressing = true
 				standOff := (Shape_PRESSING_STANDOFF_BASE +
 					(1.0-sliders.Pressing)*
@@ -528,6 +553,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			} else if doubling := e.b2DoublingFor(player, carrier, pressers); doubling.HasValue {
 				// Ordered to double up: the second man closes the carrier too.
 				player.Intent = PlayerIntent_COVER_PRESS
+				reason = TargetReason_DOUBLE
 				player.IsPressing = true
 				target = doubling.Value
 			} else if pressers[1] == player &&
@@ -539,6 +565,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				}
 				if coverOutlet != nil {
 					player.Intent = PlayerIntent_BLOCK_PASSING_LANE
+					reason = TargetReason_COVER_LANE
 					target.X = pressurePosition.X +
 						(coverOutlet.Position.X-pressurePosition.X)*
 							Shape_COVER_LANE_INTERCEPTION_POINT
@@ -548,6 +575,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					target.X -= attackDirection * Shape_COVER_LANE_GOAL_SIDE_OFFSET
 				} else {
 					player.Intent = PlayerIntent_COVER_PRESS
+					reason = TargetReason_COVER
 					lateralSide := b2Sign(player.Position.Y <= pressurePosition.Y, -1.0, 1.0)
 					target.X = pressurePosition.X -
 						attackDirection*Shape_COVER_FALLBACK_DEPTH
@@ -558,12 +586,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				// Under a tight-marking order he stays with his man in every phase,
 				// goal-side and close enough to contest each ball played to him.
 				player.Intent = PlayerIntent_MARK_OPPONENT
+				reason = TargetReason_TIGHT_MARK
 				target = e.tightMarkPoint(player, tight, target)
 			} else if teamPhase == TeamPhase_DEFENSIVE_TRANSITION {
 				// The nearest players counter-press above. Everyone else first gets
 				// goal-side and narrows toward the danger before settling into the
 				// normal defensive block.
 				player.Intent = PlayerIntent_RECOVER_SHAPE
+				reason = TargetReason_DEF_TRANSITION
 				target.X -= attackDirection * Shape_DEFENSIVE_TRANSITION_RECOVERY
 				target.Y += (pressurePosition.Y - target.Y) *
 					Shape_DEFENSIVE_TRANSITION_BALL_COMPACTNESS
@@ -580,6 +610,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				}
 				if mark != nil {
 					player.Intent = PlayerIntent_MARK_OPPONENT
+					reason = TargetReason_ZONAL_MARK
 					markWeight := Shape_BASE_MARK_WEIGHT +
 						sliders.Compactness*Shape_COMPACTNESS_MARK_WEIGHT
 					markPoint := mark.Position
@@ -609,6 +640,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					// Meet the ball on its path instead of chasing where it is: the
 					// closest point of the remaining flight line ahead of the ball.
 					player.Intent = PlayerIntent_RECEIVE_PASS
+					reason = TargetReason_RECEIVE
 					ballSpeed := length(e.ball.Velocity)
 					lookahead := toPitch(Vector2F{
 						e.ball.Velocity.X * Player_PASS_RECEIVER_LOOKAHEAD_SECONDS,
@@ -644,6 +676,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 						hClamp(meet.Y, Pitch_PLAYER_MIN_Y, Pitch_PLAYER_MAX_Y)}
 				} else {
 					player.Intent = PlayerIntent_OFFER_SUPPORT
+					reason = TargetReason_FLIGHT_SUPPORT
 					// Preserve the lane established before release instead of snapping
 					// every supporting player back toward the formation anchor for the
 					// duration of each pass; drift gently forward and toward the ball
@@ -664,8 +697,10 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				// full-team scramble on every release of the ball.
 				if pressers[0] == player {
 					player.Intent = PlayerIntent_CLAIM_LOOSE_BALL
+					reason = TargetReason_LOOSE_CLAIM
 				} else {
 					player.Intent = PlayerIntent_COVER_PRESS
+					reason = TargetReason_LOOSE_COVER
 				}
 				player.IsPressing = true
 				// Run at where the ball will be when he gets there.
@@ -687,6 +722,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					player.Intent = PlayerIntent_COVER_PRESS
 					target = e.looseDelayPoint(race, player.IsHomeTeam)
 					owner = TargetOwner_LOOSE
+					reason = TargetReason_LOOSE_DELAY
 				}
 			} else if e.ball.IsPass || e.ball.IsShot {
 				var tight *MatchPlayer
@@ -696,14 +732,17 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				if tight != nil {
 					// A tight marker goes with his man while the pass is on its way.
 					player.Intent = PlayerIntent_MARK_OPPONENT
+					reason = TargetReason_FLIGHT_MARK
 					target = e.tightMarkPoint(player, tight, target)
 				} else if teamPhase == TeamPhase_DEFENSIVE_TRANSITION {
 					player.Intent = PlayerIntent_RECOVER_SHAPE
+					reason = TargetReason_FLIGHT_RECOVER
 					target.X -= attackDirection * Shape_DEFENSIVE_TRANSITION_RECOVERY
 					target.Y += (pressurePosition.Y - target.Y) *
 						Shape_DEFENSIVE_TRANSITION_BALL_COMPACTNESS
 				} else {
 					player.Intent = PlayerIntent_HOLD_SHAPE
+					reason = TargetReason_FLIGHT_HOLD
 				}
 			} else {
 				attackingTransition := teamPhase == TeamPhase_ATTACKING_TRANSITION
@@ -715,8 +754,10 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					transitionRunner := b2ContainsRunner(runners, player)
 					if transitionRunner {
 						player.Intent = PlayerIntent_RUN_IN_BEHIND
+						reason = TargetReason_TRANSITION_RUN
 					} else {
 						player.Intent = PlayerIntent_OFFER_SUPPORT
+						reason = TargetReason_TRANSITION_SUPPORT
 					}
 					player.IsMakingRun = transitionRunner
 					target.X += attackDirection * b2Sign(transitionRunner,
@@ -730,6 +771,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					}
 				} else {
 					player.Intent = PlayerIntent_RECOVER_SHAPE
+					reason = TargetReason_RECOVER
 					target.X -= attackDirection * Shape_DEFENSIVE_TRANSITION_RECOVERY
 				}
 			}
@@ -741,12 +783,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			e.ball.PassByHome != player.IsHomeTeam &&
 			player.Intent != PlayerIntent_CLAIM_LOOSE_BALL {
 			target = player.MovementTarget
+			reason = TargetReason_AERIAL_HOLD
 		}
 
 		if goalkeeper {
 			receivingBackPass := e.ball.IsPass && e.ball.IntendedReceiver == player.Player &&
 				player.Intent == PlayerIntent_RECEIVE_PASS
 			player.Intent = PlayerIntent_GOALKEEP
+			reason = TargetReason_GK
 			if e.keepers[hBoolIndex(player.IsHomeTeam)].State == GoalkeeperState_DIVE {
 				continue
 			}
@@ -766,6 +810,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 		}
 		player.TacticalTarget = target
 		player.TargetOwner = owner
+		player.TargetReason = reason
 		player.UrgentMovement = urgentTarget
 	}
 	if e.cfg.Modules.M1Defence {
