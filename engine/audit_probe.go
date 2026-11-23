@@ -18,7 +18,7 @@ type auditState struct {
 	carrierGap                           []float64 // m, ball to carrier while held
 	looseClaim, looseRunners, passRunner []int     // per step
 	pressNear5, pressIntent              []int     // defenders within 5 m / PRESS intents, ball held
-	boxSteps, boxDef, boxAtt, boxFree    int
+	boxSteps, boxDef, boxAtt, boxFree    [3]int    // per zone: 0 front of box (= cek crit), 1 wide final third, 2 inside box
 	ownerM1, ownerP12Def                 int
 	layer                                map[string]int
 	owners                               [TargetOwner_COUNT]int // player-steps per target owner (live play)
@@ -36,6 +36,13 @@ type auditState struct {
 		changes    map[string]int
 		history    []auditChange
 		pingpong   map[string]int
+	}
+	// Pressure on a carrier in his own third (build-up), defending side's view.
+	buildUp struct {
+		steps, engaged   int
+		nearest, engager []float64
+		forwardNearest   []float64
+		modeCounterpress int
 	}
 	// Visual steals: an opponent nearer the ball than the carrier and within
 	// 0.8 m (what the replay holder test reads as a change of possession).
@@ -137,6 +144,7 @@ func (e *MatchEngine) auditStep() {
 	switch {
 	case carrier != nil:
 		a.held++
+		e.auditBuildUp(carrier)
 		e.auditVisualSteal(carrier, ball)
 		cm := toMetres(carrier.Position)
 		a.carrierGap = append(a.carrierGap, math.Hypot(ball.X-cm.X, ball.Y-cm.Y))
@@ -153,40 +161,55 @@ func (e *MatchEngine) auditStep() {
 		} else {
 			a.ownerP12Def++
 		}
-		// Box coverage: carrier within 30 m of the goal it attacks.
+		// Box coverage, same zones and definitions as viewer/cek/crit.js:
+		// ball depth u from the defended goal line; zone 0 = in front of the
+		// box (16 <= u <= 35, 14 <= y <= 54, cek's "bertahan depan kotak"),
+		// 1 = wide in the final third (u <= 35, outside that band), 2 = in
+		// the box. Defenders/attackers = outfielders; an attacker in the box
+		// is free with no defending outfielder within 3 m.
 		gx := 0.0
 		if carrier.IsHomeTeam {
 			gx = Pitch_LENGTH_METRES
 		}
-		if math.Hypot(cm.X-gx, cm.Y-Pitch_WIDTH_METRES/2) < 30 {
-			a.boxSteps++
+		u := math.Abs(ball.X - gx)
+		zone := -1
+		switch {
+		case u >= 16 && u <= 35 && ball.Y >= 14 && ball.Y <= 54:
+			zone = 0
+		case u < 16 && ball.Y > 13.84 && ball.Y < 54.16:
+			zone = 2
+		case u <= 35:
+			zone = 1
+		}
+		if zone >= 0 {
+			a.boxSteps[zone]++
 			inBox := func(p *MatchPlayer) bool {
 				pm := toMetres(p.Position)
-				return math.Abs(pm.X-gx) < 16.5 && math.Abs(pm.Y-Pitch_WIDTH_METRES/2) < 20.16
+				return math.Abs(pm.X-gx) < 16.5 && pm.Y > 13.84 && pm.Y < 54.16
 			}
 			for i := range e.players {
 				p := &e.players[i]
-				if !active(p) || p.IsGoalkeeper || p == carrier || !inBox(p) {
+				if !active(p) || p.IsGoalkeeper || !inBox(p) {
 					continue
 				}
 				if p.IsHomeTeam == def {
-					a.boxDef++
+					a.boxDef[zone]++
 					continue
 				}
-				a.boxAtt++
+				a.boxAtt[zone]++
 				pm := toMetres(p.Position)
 				free := true
 				for j := range e.players {
 					q := &e.players[j]
-					if active(q) && q.IsHomeTeam == def {
+					if active(q) && !q.IsGoalkeeper && q.IsHomeTeam == def {
 						qm := toMetres(q.Position)
-						if math.Hypot(qm.X-pm.X, qm.Y-pm.Y) < 3 {
+						if math.Hypot(qm.X-pm.X, qm.Y-pm.Y) <= 3 {
 							free = false
 						}
 					}
 				}
 				if free {
-					a.boxFree++
+					a.boxFree[zone]++
 				}
 			}
 		}
@@ -267,9 +290,12 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	fmt.Fprintf(w, "AUDIT pressing (held): defenders <5 m median %d ≥2 %.0f%% ≥3 %.1f%% | press/cover intents median %d | M1 owns defence %.0f%% of held steps\n",
 		auditQ(a.pressNear5, .5), auditShare(a.pressNear5, 2), auditShare(a.pressNear5, 3), auditQ(a.pressIntent, .5),
 		100*float64(a.ownerM1)/math.Max(1, float64(a.ownerM1+a.ownerP12Def)))
-	if a.boxSteps > 0 {
-		fmt.Fprintf(w, "AUDIT box (carrier <30 m from goal): defenders in box %.2f attackers %.2f free attackers (<3 m none) %.0f%%\n",
-			float64(a.boxDef)/float64(a.boxSteps), float64(a.boxAtt)/float64(a.boxSteps), 100*float64(a.boxFree)/math.Max(1, float64(a.boxAtt)))
+	for z, name := range []string{"front of box (cek crit zone)", "wide final third", "in the box"} {
+		if a.boxSteps[z] > 0 {
+			fmt.Fprintf(w, "AUDIT box [%s]: defenders in box %.2f attackers in box %.2f free attackers (no defender <=3 m) %.0f%%\n",
+				name, float64(a.boxDef[z])/float64(a.boxSteps[z]), float64(a.boxAtt[z])/float64(a.boxSteps[z]),
+				100*float64(a.boxFree[z])/math.Max(1, float64(a.boxAtt[z])))
+		}
 	}
 	share := func(c [TargetOwner_COUNT]int) string {
 		t := 0
@@ -285,6 +311,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 		return out
 	}
 	e.auditPossessionReport(w)
+	e.auditBuildUpReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -479,4 +506,65 @@ func (e *MatchEngine) auditVisualReport(w io.Writer) {
 		return fmt.Sprint(r)
 	}
 	fmt.Fprintf(w, "AUDIT visual steals by defender intent %s | by M1 role (1 FirstDefender 2 Cover 3 Screen 4 Contain 5 ProtectDepth 6 RecoverShape 7 Marker) %s\n", keys(v.byIntent), keys(v.byM1Role))
+}
+
+// auditBuildUp: carrier (not keeper) in his own third; how close the
+// defending side is, whether M1 has an engager (FirstDefender/Contain) on him,
+// and how close the defending forwards (ST/W/CAM) are.
+func (e *MatchEngine) auditBuildUp(carrier *MatchPlayer) {
+	if carrier.IsGoalkeeper {
+		return
+	}
+	cm := feM1ToM(carrier.Position)
+	if cm.X*feM1Dir(carrier.IsHomeTeam) > -feM1HalfLength/3 {
+		return
+	}
+	b := &e.audit.buildUp
+	b.steps++
+	def := !carrier.IsHomeTeam
+	side := &e.feM1Of().sides[hBoolIndex(def)]
+	if side.episode.mode == feM1Counterpress {
+		b.modeCounterpress++
+	}
+	near, fwd, eng := math.Inf(1), math.Inf(1), math.Inf(1)
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsHomeTeam != def || p.IsGoalkeeper {
+			continue
+		}
+		d := feM1Dist(feM1ToM(p.Position), cm)
+		near = math.Min(near, d)
+		if feM1Forward(p) {
+			fwd = math.Min(fwd, d)
+		}
+		if side.owns && i < len(side.tasks) {
+			if r := side.tasks[i].role; r == feM1RoleFirstDefender || r == feM1RoleContain {
+				eng = math.Min(eng, d)
+			}
+		}
+	}
+	b.nearest = append(b.nearest, near)
+	b.forwardNearest = append(b.forwardNearest, fwd)
+	if !math.IsInf(eng, 1) {
+		b.engaged++
+		b.engager = append(b.engager, eng)
+	}
+}
+
+func (e *MatchEngine) auditBuildUpReport(w io.Writer) {
+	b := &e.audit.buildUp
+	if b.steps == 0 {
+		return
+	}
+	med := func(x []float64) float64 {
+		if len(x) == 0 {
+			return math.NaN()
+		}
+		y := append([]float64(nil), x...)
+		sort.Float64s(y)
+		return y[len(y)/2]
+	}
+	fmt.Fprintf(w, "AUDIT build-up (carrier in own third): steps %d | nearest defender median %.1f m | nearest forward %.1f m | M1 engager assigned %.0f%% (at %.1f m) | counterpress mode %.0f%%\n",
+		b.steps, med(b.nearest), med(b.forwardNearest), 100*float64(b.engaged)/float64(b.steps), med(b.engager),
+		100*float64(b.modeCounterpress)/float64(b.steps))
 }

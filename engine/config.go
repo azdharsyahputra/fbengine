@@ -99,6 +99,24 @@ type LooseConfig struct {
 	SupportPull float64 `json:"support_pull"` // lp
 }
 
+// PressConfig is M1's organised press (Phase 2 / C3): when the opponent has
+// the ball deep in its own half, the defending side engages the carrier and
+// its forwards and midfielders step up instead of holding the block shape.
+type PressConfig struct {
+	// Depth: team-frame x (FE metres, + toward the opponent's goal) of the
+	// ball beyond which the organised press applies; >= 60 disables it.
+	Depth float64 `json:"depth"` // pz
+	// Window: seconds within which someone must reach the carrier to be sent
+	// (the Contain fallback's window outside the press zone is m1.contain_window).
+	Window float64 `json:"window"` // pw
+	// ForwardGap / MidGap: forwards / midfielders on shape duty stand no more
+	// than this many metres behind the ball.
+	ForwardGap float64 `json:"forward_gap"` // pg
+	MidGap     float64 `json:"mid_gap"`     // pn
+	// Effort: the presser's approach effort (0 jog … 1 sprint).
+	Effort float64 `json:"effort"` // pe
+}
+
 // M8Config is the M8 planner calibration.
 type M8Config struct {
 	Confidence  float64 `json:"confidence"`   // mc
@@ -126,6 +144,7 @@ type EngineConfig struct {
 	Modules ModuleConfig `json:"modules"`
 	M1      M1Config     `json:"m1"`
 	Loose   LooseConfig  `json:"loose"`
+	Press   PressConfig  `json:"press"`
 	M2      M2Config     `json:"m2"`
 	M8      M8Config     `json:"m8"`
 	M10     M10Config    `json:"m10"`
@@ -160,7 +179,11 @@ func DefaultConfig() EngineConfig {
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
 		// 10.6→8.4, loose ≥5 11.6→9.0, fouls 24→21 per side.
-		M1:    M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow},
+		M1: M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow},
+		// Phase 2 C3 (go9): press when the ball is in the opponent's third,
+		// engaging a carrier someone reaches within 6 s. The block step-up
+		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
+		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
 		M8:    M8Config{Confidence: feM8Confidence, ExpandCarry: true},
 		M10: M10Config{
@@ -208,6 +231,16 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.Loose.DelayDistance = f
 			case "lp":
 				c.Loose.SupportPull = f
+			case "pz":
+				c.Press.Depth = f
+			case "pw":
+				c.Press.Window = f
+			case "pg":
+				c.Press.ForwardGap = f
+			case "pn":
+				c.Press.MidGap = f
+			case "pe":
+				c.Press.Effort = f
 			default:
 				return false
 			}

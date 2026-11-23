@@ -96,6 +96,7 @@ type feM1Side struct {
 	carrierSlot int
 	// The opponent's ground pass is in flight (ball position/velocity).
 	inFlight   bool
+	pressZone  bool // Phase 2 C3: this refresh is an organised press (fe_m1_tasks.go)
 	flightBall feM1Vec
 	flightVel  Vector2F
 	rest       [2]int

@@ -362,6 +362,10 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 	// predicted ball (same construction as the press point); the M6 challenge
 	// owns the decision to step in. ContainDistance == ApproachOffset is go4.
 	containAt := press
+	// Phase 2 (C3): organised press zone — the ball deep in the opponent's
+	// half (team-frame x beyond Press.Depth) and no near-goal engagement.
+	inPress := !engage && ball.X*dir >= e.cfg.Press.Depth
+	side.pressZone = inPress
 	if cd := e.cfg.M1.ContainDistance; cd != feM1ApproachOffset {
 		pred := feM1Vec{ball.X + side.vel.X*feM1CarrierPrediction, ball.Y + side.vel.Y*feM1CarrierPrediction}
 		if engage {
@@ -462,7 +466,11 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 		contain, containArrival := e.feM1ChooseSlot(home, 1.0, press,
 			func(slot int) bool { return !canEngage(slot) },
 			prev, feM1HandoffAdvantage)
-		if !engage && containArrival > e.cfg.M1.ContainWindow {
+		containWindow := e.cfg.M1.ContainWindow
+		if inPress {
+			containWindow = e.cfg.Press.Window
+		}
+		if !engage && containArrival > containWindow {
 			// The midfield fallback engages only a carrier someone can reach
 			// within the FE local window (2 s); otherwise the block holds.
 			contain = -1
@@ -582,6 +590,14 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 		}
 		role := feM1RoleRecoverShape
 		target.X = math.Min(target.X*dir, side.retreatRef-e.feM10RetreatGap(e.players[slot].Player, retreatGap)) * dir
+		if inPress {
+			// Organised press: forwards and midfielders step up behind the
+			// ball (cover shadow / pressing distance) instead of holding the
+			// deep block shape; the back line keeps its depth.
+			if gap := e.pressGap(e.players[slot].Player); gap >= 0 {
+				target.X = math.Max(target.X*dir, ball.X*dir-gap) * dir
+			}
+		}
 		assign(slot, role, shift(slot, role, floor(boxLine(slot, target))), mark)
 	}
 
@@ -772,6 +788,13 @@ func (e *MatchEngine) feM1Apply(home bool, side *feM1Side, s *feM1State) {
 		default:
 			target = p.TacticalTarget
 		}
+		if side.pressZone && task.role == feM1RoleContain {
+			// Organised press: the presser closes at Press.Effort along the
+			// steered path (cover shadow), not a flat-out straight sprint;
+			// M6 still decides when he steps in.
+			urgent, direct = false, false
+			effort = e.cfg.Press.Effort
+		}
 		if side.inFlight && e.ball.IsAerialDelivery {
 			switch task.role {
 			case feM1RoleFirstDefender, feM1RoleContain, feM1RoleIntercept:
@@ -847,4 +870,19 @@ func (e *MatchEngine) feM1Individual(player *MatchPlayer) bool {
 	side := &e.feM1Of().sides[hBoolIndex(player.IsHomeTeam)]
 	slot := e.slotOf(player)
 	return side.owns && slot < len(side.individual) && side.individual[slot]
+}
+
+// pressGap: how far behind the ball a forward / midfielder stands in the
+// organised press (Press.ForwardGap / MidGap); -1 for defenders.
+func (e *MatchEngine) pressGap(p *Player) float64 {
+	if p == nil {
+		return -1
+	}
+	switch p.GetRole() {
+	case PlayerRole_ST, PlayerRole_LW, PlayerRole_RW, PlayerRole_CAM:
+		return e.cfg.Press.ForwardGap
+	case PlayerRole_LM, PlayerRole_RM, PlayerRole_CM, PlayerRole_CDM:
+		return e.cfg.Press.MidGap
+	}
+	return -1
 }

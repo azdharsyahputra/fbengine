@@ -21,10 +21,14 @@ for (const f of files) {
   put('press5med', one(t, /lawan dalam 5 m dari pembawa: median (\d+)/));
   put('lockstep', one(t, /lockstep .*?: ([\d.]+)/));
   put('diam', one(t, /sambil diam <0.5 m\/s: (\d+)%/));
+  put('own3near', one(t, /sendiri: n\d+ bek terdekat median ([\d.]+) m/));
+  put('own3in5', one(t, /sendiri: n\d+ bek terdekat median [\d.]+ m p25 [\d.]+ \| ≥1 dalam 5 m (\d+)%/));
+  put('mid3in5', one(t, /tengah: n\d+ bek terdekat median [\d.]+ m p25 [\d.]+ \| ≥1 dalam 5 m (\d+)%/));
+  put('buEng', one(a, /M1 engager assigned (\d+)%/));
   put('pLoose5', one(a, /truly loose: runners-at-ball median \d+ p90 \d+ ≥5 ([\d.]+)%/));
   put('pPress2', one(a, /defenders <5 m median \d+ ≥2 (\d+)%/));
   put('pBoxDef', one(a, /defenders in box ([\d.]+)/));
-  put('pBoxFree', one(a, /free attackers \(<3 m none\) (\d+)%/));
+  put('pBoxFree', one(a, /front of box[^:]*: defenders in box [\d.]+ attackers in box [\d.]+ free attackers \(no defender <=3 m\) (\d+)%/));
   const g = m.match(/(\d+)-(\d+)/); if (g) put('goals', +g[1] + +g[2]);
   const fo = m.match(/foul (\d+) vs (\d+)/); if (fo) put('fouls', (+fo[1] + +fo[2]) / 2);
 }

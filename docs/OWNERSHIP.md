@@ -82,3 +82,40 @@ There is one source for each spatial fact. All of it is read-only, with no RNG.
 - **Tried and rejected:**
   - A pitch-control grid rebuilt every tactical refresh: 7× slower, since refreshes happen nearly every step.
   - Dropping M2's lane filter entirely (loose ≥5 8.7 → 10.2).
+
+## Defensive behaviour (item C)
+
+### C1: one box metric
+
+The probe and `viewer/cek/crit.js` now use the same zones and definitions:
+- **Ball depth `u`** is measured from the defended goal line.
+- **Zones:**
+  - "front of box": 16–35 m, y 14–54; this is cek's "bertahan depan kotak";
+  - wide final third;
+  - in the box.
+- **Counts** are outfielders only. An attacker in the box is free when no defending outfielder is within 3 m.
+
+On the same match the two agree. For example, go8 seed 19, front-of-box zone:
+
+| | Defenders in box | Free attackers in box |
+|---|---|---|
+| Probe | 3.52 | 16% |
+| cek | 3.5–3.6 | 12–17% |
+
+The old "2.7" came from go4. The real-data box numbers (1.2 defenders, 42% free) are camera-limited and are **not** a target.
+
+### C2: box baseline (no reliable real target, so not tuned)
+
+go9, 10 seeds, front-of-box zone:
+- defenders in box about 3.0;
+- free attackers about 18%.
+- The wide zone (crossing positions) has ~30% free attackers. The in-box zone has ~25%.
+
+### C3: organised press (M1 owns it)
+
+- **When:** the ball is in the opponent's third (`press.depth` 17.5, team frame) and there is no near-goal engagement.
+- **What:** the M1 Contain is sent at any carrier someone reaches within `press.window` (6 s), instead of `m1.contain_window` (2 s). He still jockeys at `m1.contain_distance`, and M6 decides the tackle.
+- **Off by default, measured:**
+  - Block step-up (`press.forward_gap` / `mid_gap`, 99 = off).
+  - Lower presser effort (`press.effort`): no effect, because M3 drives PRESS at full effort.
+- **Trade-off found:** any stronger press (wider zone, step-up) raises chase≥3. Real teams get pressure from already-close positions, not long runs.

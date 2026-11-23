@@ -2,6 +2,29 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go9: Phase 2, item C (defending) (2026-11-23)
+
+Config `1f84b21c…`.
+
+- **C1:** the audit probe uses the same box zones as cek `crit.js`. The two now agree (≈3.5 defenders in box, 12–17% free, front-of-box zone).
+- **C3:** M1 organised press. With the ball in the opponent's third, the Contain is sent within 6 s.
+- **Result (10 seeds vs go8):**
+
+  | | go8 | go9 | Real |
+  |---|---|---|---|
+  | Nearest defender to a carrier in his own third | 13.0 m | 7.2 m | 5–6.6 m |
+  | ≥1 defender within 5 m (own third) | 13.5% | 25% | 41–51% |
+  | Ping-pong | 15.4 | 13.3 | — |
+  | Fouls per side | 19.9 | 19.6 | — |
+  | chase≥3 | 8.0 | 10.0 | 5.8 |
+  | Loose ≥5 | 8.0 | 8.8 | 6.8 |
+
+- **Tried and left off:**
+  - Block step-up: own-third pressure 31%, but chase≥3 11.6 and loose 10.9.
+  - Lower presser effort: no effect.
+  - Press zone from the halfway line: middle-third pressure 41%, but fouls 23.
+- **Reproduce go8:** `FMENGINE_M1=pz=99`.
+
 ## go8: Phase 2, item B (spatial model) (2026-11-23)
 
 Config `9f961677…` (`m2.lane_clear_radius` removed).
