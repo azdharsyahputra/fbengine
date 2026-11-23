@@ -2,6 +2,27 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go12: midfield hole (2026-11-23)
+
+From watching go11; see the notes file `kritik-coach-go11.md`.
+
+- **Cause:** in a final-third attack the pivots trailed the ball by ~29 m (DM–AM 23 m) although their support slots were near the ball. M3 moved settled supporters at ~0.19 of top speed (max ~1.7 m/s toward the ball), so they never arrived.
+- **Change:** a settled supporter or holder whose spot is more than `m3.catch_up_distance` (8 m) ahead in the attacking direction moves up at `m3.catch_up_share` 0.6 of top speed.
+- **Result (10 seeds vs go11):**
+
+  | | go11 | go12 |
+  |---|---|---|
+  | DM–AM | 21 m | 14.7 m |
+  | DM behind ball, final third | −29 m | −17 m |
+  | Final-third backward | 39% | 36% |
+  | Ping-pong | 13.7 | 12.3 |
+  | cek loose ≥5 | 10.8 | 13.3 |
+  | Probe loose ≥5 | 31 | 30 |
+
+- The cek loose ≥5 count rises because the support runs that follow a forward pass count as "running at the ball". The probe's truly-loose count does not change.
+- **Also fixed** (`de9620c`): own-goal team in replay events, save/block texts, CLI shot attribution, and the engine match clock in replays (the viewer reads it).
+- **Reproduce go11:** `FMENGINE_M1=cs=0`.
+
 ## Phase 2, item F (data validation) (2026-11-23)
 
 No behaviour change.

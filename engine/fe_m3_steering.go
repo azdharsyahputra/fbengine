@@ -174,6 +174,20 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 			}
 			share *= feM3SettledMin + (most-feM3SettledMin)*
 				hClamp((s.runLength-feM3SettledShortRun)/feM3SettledLongRun, 0.0, 1.0)
+			// Phase 2 (ours): catching up with the play. A settled supporter
+			// or holder whose spot is more than CatchUpDistance ahead in the
+			// attacking direction moves up at CatchUpShare (a jog-run), so the
+			// pivot does not trail an attack by 30 m; other settled moves,
+			// including runs at the ball, keep the walk-jog.
+			if cu := e.cfg.M3.CatchUpShare; cu > 0 {
+				dir := -1.0
+				if player.IsHomeTeam {
+					dir = 1.0
+				}
+				if offset.X*dir > e.cfg.M3.CatchUpDistance {
+					share = math.Max(share, cu)
+				}
+			}
 		}
 		if e.feM4Pushed(player) {
 			// The ball-side full-back getting forward runs (ours).

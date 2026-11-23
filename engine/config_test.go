@@ -14,8 +14,9 @@ import (
 // 1f84b21c… go9: press.* (organised press in the opponent's third);
 // ad85f0ba… go10: m1.forward_bypassed_effort 0, bypassed_sprint_goal 25, recover_clearance;
 // 2963b878… E2: progress_* moved m10 → m2, m2.to_feet (behaviour = go10);
-// 749dbb80… go11: m2.duel_loss 0.5, m2.progress_final 0.003.
-const goldenDefaultHash = "749dbb80eb4a06c55e634f12c937a6694414b37defb8e75dbb8a47025ab9c511"
+// 749dbb80… go11: m2.duel_loss 0.5, m2.progress_final 0.003;
+// a37a9a66… go12: m3.catch_up_share 0.6.
+const goldenDefaultHash = "a37a9a6651a9b1b3b09964e6615ce9dccf3b23298d17d2c43e921844920a9d0f"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

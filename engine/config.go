@@ -132,6 +132,15 @@ type PressConfig struct {
 	Effort float64 `json:"effort"` // pe
 }
 
+// M3Config is movement execution (Phase 2).
+type M3Config struct {
+	// CatchUpShare: share of top speed (0 off) at which a settled supporter /
+	// holder moves to a spot more than CatchUpDistance metres ahead of him in
+	// the attacking direction (otherwise settled moves walk-jog at ~0.19).
+	CatchUpShare    float64 `json:"catch_up_share"`    // cs
+	CatchUpDistance float64 `json:"catch_up_distance"` // cx
+}
+
 // M8Config is the M8 planner calibration.
 type M8Config struct {
 	Confidence  float64 `json:"confidence"`   // mc
@@ -158,6 +167,7 @@ type EngineConfig struct {
 	Loose   LooseConfig  `json:"loose"`
 	Press   PressConfig  `json:"press"`
 	M2      M2Config     `json:"m2"`
+	M3      M3Config     `json:"m3"`
 	M8      M8Config     `json:"m8"`
 	M10     M10Config    `json:"m10"`
 }
@@ -203,6 +213,9 @@ func DefaultConfig() EngineConfig {
 		// Phase 2 C3 (go9): press when the ball is in the opponent's third,
 		// engaging a carrier someone reaches within 6 s. The block step-up
 		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
+		// go12: settled supporters catch up with the attack at 0.6 of top speed
+		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
+		M3:    M3Config{CatchUpShare: 0.6, CatchUpDistance: 8},
 		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
 		M8:    M8Config{Confidence: feM8Confidence, ExpandCarry: true},
@@ -244,6 +257,10 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M1.ContainDistance = f
 			case "cw":
 				c.M1.ContainWindow = f
+			case "cs":
+				c.M3.CatchUpShare = f
+			case "cx":
+				c.M3.CatchUpDistance = f
 			case "rc":
 				c.M1.RecoverClearance = f
 			case "fb":

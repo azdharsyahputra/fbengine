@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"strings"
 )
 
 type auditState struct {
@@ -37,6 +38,8 @@ type auditState struct {
 		history    []auditChange
 		pingpong   map[string]int
 	}
+	// Pivot (CDM/CM) of the side in possession: reason and depth behind the ball.
+	pivot map[string][]float64
 	// Chase anatomy (cek chase.js definition: defenders >3 m/s, >5 m away,
 	// heading at the ball within cos 0.8, while the ball is held).
 	chase struct {
@@ -150,6 +153,7 @@ func (e *MatchEngine) auditStep() {
 	switch {
 	case carrier != nil:
 		a.held++
+		e.auditPivot(carrier)
 		e.auditBuildUp(carrier)
 		e.auditChase(carrier, ball)
 		e.auditVisualSteal(carrier, ball)
@@ -320,6 +324,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditPossessionReport(w)
 	e.auditBuildUpReport(w)
 	e.auditChaseReport(w)
+	e.auditPivotReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -642,6 +647,66 @@ func (e *MatchEngine) auditChaseReport(w io.Writer) {
 	fmt.Fprintf(w, "AUDIT chase>=3 (engine velocity): %.1f%% of held steps | runners by owner:reason:", 100*float64(c.three)/float64(c.held))
 	for i := 0; i < len(r) && i < 14; i++ {
 		fmt.Fprintf(w, " %s %.0f%% |", r[i].k, 100*float64(r[i].n)/float64(tot))
+	}
+	fmt.Fprintln(w)
+}
+
+func (e *MatchEngine) auditPivot(carrier *MatchPlayer) {
+	a := &e.audit
+	if a.pivot == nil {
+		a.pivot = map[string][]float64{}
+	}
+	dir := feM1Dir(carrier.IsHomeTeam)
+	bx := feM1ToM(carrier.Position).X * dir
+	zone := "final"
+	switch {
+	case bx < -feM1HalfLength/3:
+		zone = "own"
+	case bx < feM1HalfLength/3:
+		zone = "mid"
+	}
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p == carrier || p.IsHomeTeam != carrier.IsHomeTeam || p.Player == nil {
+			continue
+		}
+		if r := p.Player.GetRole(); r != PlayerRole_CDM && r != PlayerRole_CM {
+			continue
+		}
+		k := zone + " " + p.TargetOwner.String() + ":" + p.TargetReason.String()
+		if p.TargetRefiner != TargetOwner_NONE {
+			k += "+" + p.TargetRefiner.String()
+		}
+		a.pivot[k] = append(a.pivot[k], feM1ToM(p.Position).X*dir-bx)
+	}
+}
+
+func (e *MatchEngine) auditPivotReport(w io.Writer) {
+	a := &e.audit
+	if len(a.pivot) == 0 {
+		return
+	}
+	type kv struct {
+		k   string
+		n   int
+		med float64
+	}
+	var r []kv
+	tot := map[string]int{}
+	for k, v := range a.pivot {
+		s := append([]float64(nil), v...)
+		sort.Float64s(s)
+		r = append(r, kv{k, len(v), s[len(s)/2]})
+		tot[strings.Fields(k)[0]] += len(v)
+	}
+	sort.Slice(r, func(i, j int) bool { return r[i].n > r[j].n || r[i].n == r[j].n && r[i].k < r[j].k })
+	fmt.Fprintf(w, "AUDIT pivot (CDM/CM, own side in possession): zone owner:reason share / median metres from ball:")
+	for _, x := range r {
+		z := strings.Fields(x.k)[0]
+		if 100*x.n/tot[z] < 3 {
+			continue
+		}
+		fmt.Fprintf(w, " %s %d%% %.0fm |", x.k, 100*x.n/tot[z], x.med)
 	}
 	fmt.Fprintln(w)
 }
