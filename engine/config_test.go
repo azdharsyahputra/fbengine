@@ -8,8 +8,8 @@ import (
 // The go4 defaults, frozen: any change to a default (or to the JSON field
 // set) changes this hash and must be deliberate. History: 4c4a29ff… go4 /
 // Phase 1; 56567dbd… Phase 2 added m1.contain_distance (default = go4
-// behaviour, replays unchanged).
-const goldenDefaultHash = "56567dbd897dd8df753323b718fab7be9c29e5d5815b5dcbde062bce9ed7fb99"
+// behaviour, replays unchanged); 85cee7dd… go5: contain_distance 2.0.
+const goldenDefaultHash = "85cee7dda48498e9e51ee7cf6554cde5eb394dbcd123d05497ab739d9cfac5ec"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

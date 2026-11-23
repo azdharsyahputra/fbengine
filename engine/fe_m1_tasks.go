@@ -358,6 +358,20 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 		press = feM1Vec{pred.X + (ownGoal.X-pred.X)/d*feM1ApproachOffset,
 			pred.Y + (ownGoal.Y-pred.Y)/d*feM1ApproachOffset}
 	}
+	// Phase 2 (ours): the Contain holds ContainDistance goal-side of the
+	// predicted ball (same construction as the press point); the M6 challenge
+	// owns the decision to step in. ContainDistance == ApproachOffset is go4.
+	containAt := press
+	if cd := e.cfg.M1.ContainDistance; cd != feM1ApproachOffset {
+		pred := feM1Vec{ball.X + side.vel.X*feM1CarrierPrediction, ball.Y + side.vel.Y*feM1CarrierPrediction}
+		if engage {
+			d := math.Max(feM1Dist(pred, ownGoal), EPSILON)
+			containAt = feM1Vec{pred.X + (ownGoal.X-pred.X)/d*cd, pred.Y + (ownGoal.Y-pred.Y)/d*cd}
+		} else {
+			containAt = feM1Vec{hClamp(pred.X-dir*cd, -feM1HalfLength, feM1HalfLength),
+				hClamp(pred.Y, -feM1HalfWidth, feM1HalfWidth)}
+		}
+	}
 
 	// 2. Counterpress: FirstDefender, Cover, up to two Screens (:453-553).
 	if mode == feM1Counterpress {
@@ -454,7 +468,7 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 			contain = -1
 		}
 		if contain >= 0 {
-			assign(contain, feM1RoleContain, press, -1)
+			assign(contain, feM1RoleContain, containAt, -1)
 		}
 		// Go adaptation: inside the engage distance the Contain gets a second
 		// defender (FE's Cover, otherwise only in counterpress) between the

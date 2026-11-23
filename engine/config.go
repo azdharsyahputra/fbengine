@@ -140,7 +140,10 @@ func DefaultConfig() EngineConfig {
 			CarryPressure:     feM2CarryPressurePenalty,
 			DuelLoss:          0.3,
 		},
-		M1: M1Config{ContainDistance: feM1ApproachOffset},
+		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
+		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
+		// 10.6→8.4, loose ≥5 11.6→9.0, fouls 24→21 per side.
+		M1: M1Config{ContainDistance: 2.0},
 		M8: M8Config{Confidence: feM8Confidence, ExpandCarry: true},
 		M10: M10Config{
 			NearDepth: -0.06, NearWidth: 0.14,
