@@ -173,6 +173,16 @@ func (e *MatchEngine) feChallengeKind(carrier, defender *MatchPlayer) (sliding b
 	}
 	if ((recovering && escaping) || forced) && d <= slideReach &&
 		(through || !e.feShielded(carrier, defender, feSlidingPreparation)) {
+		if e.diag.Audit {
+			k := "slide recover"
+			if forced {
+				k = "slide forced"
+			}
+			if e.audit.fouls == nil {
+				e.audit.fouls = map[string]int{}
+			}
+			e.audit.fouls[k]++
+		}
 		return true, true
 	}
 	return false, false

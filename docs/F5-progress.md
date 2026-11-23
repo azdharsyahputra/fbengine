@@ -260,3 +260,22 @@ Disiplin membaik jelas, bentuk netral. Selisih gol +0.5 sekitar 0.8 SD di 20 see
 **Pelajaran noise:** antara dua set 10 seed, skor bentuk bergeser ~0.03 dan gol ~0.6 untuk config yang sama. Perbaikan skor di bawah ~0.03 dari ronde sebelumnya belum tentu nyata. Keputusan statistik gol sebaiknya pakai 20 seed.
 
 **Sisa akar foul:** percobaan tekel ~196 per laga, ~4× EPL. First defender (intent PRESS_BALL) menekel begitu bola masuk jangkauan.
+
+## Ronde 11: frekuensi tekel (gagal, dibuang)
+
+**Hipotesis:** first defender commit begitu bola masuk jangkauan; knob uji `tr` = laju commit per detik saat bola masih di kaki pembawa (jockey), kecuali sentuhan lepas atau standoff.
+
+| 10 seed | Percobaan tekel | Foul/tim | Merah | Skor | Penjaga |
+|---|---|---|---|---|---|
+| default `gz=20` | 196 | 19.7 | 0.7 | 0.745 | 3/6 |
+| `tr=1.5` | 133 | 16.6 | 1.7 | 0.768 | 1/6 (recvPress 38) |
+| `tr=0.7` | 126 | 16.3 | 1.2 | 0.817 | 1/6 (recvPress 38) |
+
+**Gagal:** tekel standing turun (~103 → ~45), tetapi foul hanya turun ~3 per tim. Sliding tetap ~85 per laga dan foul sliding meleset-reckless (~20 per laga) adalah sumber foul dan merah langsung. Penjaga recvPress jebol. Knob dibuang.
+
+**Asal sliding** (probe `slide recover/forced`, 5 seed, per laga):
+- ~59: bek mengejar dari belakang dalam 20 m dari gawang (lewat `SlideDepth`);
+- ~28: take-on yang gagal (`feTakeOn`): bek yang "membaca" tetapi di luar jangkauan standing langsung sliding, **di mana saja** (tidak lewat `SlideDepth`);
+- 0: standoff paksa.
+
+**Berikutnya:** take-on slide di luar zona sliding → jockey (tanpa commit); dan syarat sliding pemulihan dekat gawang (mis. hanya saat pembawa lari ke gawang).
