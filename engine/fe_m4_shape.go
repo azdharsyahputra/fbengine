@@ -303,27 +303,22 @@ func (e *MatchEngine) feM4Refine(player *MatchPlayer, base Vector2F, carrier *Ma
 // feM4Score is FieldEvaluator.scoreAtSlots (FieldEvaluator.fs:79-109) in the
 // team frame (c), team-mates and opponents at their current positions.
 func (e *MatchEngine) feM4Score(player *MatchPlayer, home bool, dir float64, c feM1Vec) float64 {
-	dOur, dOpp := math.MaxFloat64, math.MaxFloat64
+	dOur := math.MaxFloat64
 	for i := range e.players {
 		p := &e.players[i]
-		if !active(p) || p == player {
+		if !active(p) || p == player || p.IsHomeTeam != home {
 			continue
 		}
 		m := feM1ToM(p.Position)
-		d := math.Hypot(m.X*dir-c.X, m.Y-c.Y)
-		if p.IsHomeTeam == home {
-			dOur = math.Min(dOur, d)
-		} else {
-			dOpp = math.Min(dOpp, d)
-		}
+		dOur = math.Min(dOur, math.Hypot(m.X*dir-c.X, m.Y-c.Y))
 	}
 	spread := hClamp((dOur-feM4MinTeammateDist)/math.Max(1.0, feM4SearchRadius), 0.0, 1.0)
-	avoid := 1.0
-	if dOpp < math.MaxFloat64 {
-		avoid = hClamp(dOpp/(2.0*feM4SearchRadius), 0.0, 1.0)
-	}
 	progress := hClamp(0.5+c.X/(2.0*feM1HalfLength), 0.0, 1.0)
-	openness := hClamp((dOpp-dOur)/(2.0*math.Max(1.0, feM4SearchRadius)), -1.0, 1.0)
+	// Phase 2 (B3): the space terms read the shared pitch control (who gets
+	// to the spot first) instead of FE's raw distances to the nearest bodies.
+	control := e.SpatialControl(home, feM1Vec{c.X * dir, c.Y})
+	avoid := control
+	openness := 2.0*control - 1.0
 	return feM4TeammateWeight*spread + feM4OpponentWeight*avoid +
 		feM4GoalWeight*progress + feM4OppOurWeight*openness
 }

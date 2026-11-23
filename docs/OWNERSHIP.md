@@ -1,4 +1,4 @@
-# Decision ownership (Phase 2 / item A, 2026-11-23)
+# Decision ownership and spatial model (Phase 2 / items A and B, 2026-11-23)
 
 Every player target records three things:
 - `TargetOwner`: the layer that decided the job and the spot.
@@ -60,3 +60,25 @@ The audit probe (`FMENGINE_AUDIT=1`) prints the live distribution as `owner:reas
 - **Positions of non-claimers during a loose ball:** P12 transition logic. The resolver owns only the contest.
 - **Set-piece deliveries:** M9 / P12 hold.
 - **The P12 out-of-possession branch** (press, double, cover-lane, tight/zonal mark) runs only with M1 switched off.
+
+## Spatial model (item B)
+
+There is one source for each spatial fact. All of it is read-only, with no RNG.
+
+| Fact | Single source | Used by |
+|---|---|---|
+| Who gets where, when | `kinematics.go`: `bodyTimeTo` (time to a point at an effort) / `bodyReach` (distance in t). Uses the player's own top speed (fatigue, sprint reserve, injury), acceleration and current velocity. | M1 slot choice and windows; M2 pass race; M4 ball-control anchor; M5 duty arrivals; P12 presser order (plus its eagerness/continuity bias); loose-ball resolver |
+| Who controls a point | `spatial.go` `SpatialControl(side, p)`: logistic in the two sides' earliest arrivals, τ 0.45 s, exact per query | M4 refine (space/openness terms); M5 duty space |
+| Is a lane open | `spatial.go` `spatialLaneBlockers` (opponents incl. keepers projecting onto the segment within r) | Positioning wants 0 blockers (`spatialLaneOpen`: M4, M5, M10). M2 rejects a ground pass at ≥2 within 2.5 m; its race prices single bodies. |
+| Does a pass arrive | M2 ball-vs-bodies race (uses `bodyReach`) | M2 only |
+
+- **Replaced:**
+  - `feM1ArrivalTime` / `feM2Reach`, moved unchanged into kinematics.
+  - `feM4BodyReach` (uniform 8.5 m/s from standstill).
+  - P12 distance / pursuit-speed estimate.
+  - `feM4LaneClear` and M2's own `feM2LaneClear` copy.
+  - FE distance proxies in `feM4Score` and `feM5Space`.
+- **Only on the M2-off path:** P12 `passingLaneRisk`.
+- **Tried and rejected:**
+  - A pitch-control grid rebuilt every tactical refresh: 7× slower, since refreshes happen nearly every step.
+  - Dropping M2's lane filter entirely (loose ≥5 8.7 → 10.2).

@@ -37,7 +37,6 @@ const (
 	feM5OffsideMargin     = 1.5
 	feM5MaxArrival        = 4.0
 	feM5LaneRadius        = 2.0
-	feM5SpaceScale        = 12.0
 	feM5MinCondition      = 0.3
 	feM5MinScore          = 0.1
 	// Decision bias (Decision.fs:331-376): 0.02·(0.22·confidence·…), with
@@ -128,16 +127,10 @@ func (e *MatchEngine) feM5LegalTarget(home bool, x, y float64) feM1Vec {
 }
 
 // feM5Space is AttackGeometry.space (:46-56).
+// Phase 2 (B3): the shared pitch control at the point (was the nearest
+// opponent's distance over SpaceScale).
 func (e *MatchEngine) feM5Space(home bool, point feM1Vec) float64 {
-	nearest := feM5SpaceScale
-	for i := range e.players {
-		p := &e.players[i]
-		if p.IsHomeTeam == home || !active(p) {
-			continue
-		}
-		nearest = math.Min(nearest, feM1Dist(point, feM1ToM(p.Position)))
-	}
-	return hClamp(nearest/feM5SpaceScale, 0.0, 1.0)
+	return e.SpatialControl(home, point)
 }
 
 func feM5Separated(a, b, c feM1Vec) bool {

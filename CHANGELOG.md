@@ -2,6 +2,27 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go8: Phase 2, item B (spatial model) (2026-11-23)
+
+Config `9f961677…` (`m2.lane_clear_radius` removed).
+
+- **B0/B1: one arrival model** (`kinematics.go`). M4's control anchor and Player12's presser order now use it too.
+- **B2: one lane definition** (`spatialLaneBlockers`), with per-consumer tolerance.
+- **B3: pitch control** (`SpatialControl`) feeds M4 spacing and M5 duty space.
+- Details in `docs/OWNERSHIP.md` → Spatial model.
+- **Result (10 seeds vs go7):**
+
+  | | go7 | go8 |
+  |---|---|---|
+  | chase≥3 | 7.9 | 8.0 |
+  | Loose ≥5 | 8.8 | 8.0 |
+  | Probe loose ≥5 | 27 | 23 |
+  | Fouls per side | 21 | 19.9 |
+  | Box free | 16.2% | 18.9% |
+  | Ping-pong | 15.1 | 15.4 |
+
+- The ping-pong metric swings 10.5–15.4 between seed sets for the same config. Judge it on 20+ seeds.
+
 ## go7: Phase 2, item A (decision ownership) (2026-11-23)
 
 Config `83a5d924…` (unchanged; code-level).
