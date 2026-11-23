@@ -154,7 +154,10 @@ type MatchPlayer struct {
 	// to (target_owner.go); observability only.
 	TargetOwner TargetOwner
 	// TargetReason is why the owner chose it (target_owner.go).
-	TargetReason   TargetReason
+	TargetReason TargetReason
+	// TargetRefiner is the layer that fine-tuned the owner's spot (M4
+	// spacing), NONE if untouched.
+	TargetRefiner  TargetOwner
 	Player         *Player
 	IsHomeTeam     bool
 	Position       Vector2F

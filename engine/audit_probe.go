@@ -60,7 +60,7 @@ func (a *auditState) addLayer(k string) {
 	a.layer[k]++
 }
 
-func (e *MatchEngine) auditLayers(p *MatchPlayer, duty bool, base, m4, m10s, final Vector2F) {
+func (e *MatchEngine) auditLayers(p *MatchPlayer, duty bool, base, structured, final Vector2F, owner TargetOwner) {
 	moved := func(a, b Vector2F) bool {
 		return math.Hypot((a.X-b.X)*Pitch_LENGTH_METRES, (a.Y-b.Y)*Pitch_WIDTH_METRES) > 0.5
 	}
@@ -68,14 +68,11 @@ func (e *MatchEngine) auditLayers(p *MatchPlayer, duty bool, base, m4, m10s, fin
 	if duty {
 		k += " M5duty"
 	}
-	if moved(base, m4) {
-		k += " +M4"
+	if moved(base, structured) {
+		k += " +structure(" + owner.String() + ")"
 	}
-	if moved(m4, m10s) {
-		k += " +M10S"
-	}
-	if moved(m10s, final) {
-		k += " +M10O"
+	if moved(structured, final) {
+		k += " +refine(M4)"
 	}
 	e.audit.addLayer(k)
 }
@@ -104,7 +101,11 @@ func (e *MatchEngine) auditStep() {
 		if a.ownerIntent == nil {
 			a.ownerIntent = map[string]int{}
 		}
-		a.ownerIntent[p.TargetOwner.String()+":"+p.TargetReason.String()]++
+		k := p.TargetOwner.String() + ":" + p.TargetReason.String()
+		if p.TargetRefiner != TargetOwner_NONE {
+			k += "+" + p.TargetRefiner.String()
+		}
+		a.ownerIntent[k]++
 	}
 	if e.state != MatchState_PLAYING {
 		a.poss.sinceHeld, a.poss.sawPass, a.poss.sawShot = 0, false, false

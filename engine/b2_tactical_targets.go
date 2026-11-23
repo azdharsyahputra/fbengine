@@ -157,6 +157,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 		}
 		target := player.BasePosition
 		owner := TargetOwner_P12
+		refiner := TargetOwner_NONE
 		if ownControl {
 			target = e.possessionAnchor(player)
 		}
@@ -235,6 +236,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			player.TacticalTarget = target
 			player.TargetReason = TargetReason_M1_SHAPE
 			player.TargetOwner = TargetOwner_P12 // feM1Assign takes it over below
+			player.TargetRefiner = TargetOwner_NONE
 			player.UrgentMovement = false
 			continue
 		}
@@ -503,35 +505,18 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					target.Y += (carrier.Position.Y - target.Y) *
 						Shape_SUPPORT_LATERAL_PULL
 				}
+				// Phase 2 composition (compose_attack.go): one owner per
+				// decision, no overwrite chain. The assignment above (P12
+				// branch or M5 duty) owns the job; a holder's spot comes from
+				// exactly one structure rule for his role; M4 then refines the
+				// spacing (getting open is part of its scoring) and is recorded
+				// as the refiner. An M5 duty target is final.
 				auditBase := target
-				if e.cfg.Modules.M4Shape && !dutyOK && (player.Intent == PlayerIntent_HOLD_SHAPE ||
-					player.Intent == PlayerIntent_OFFER_SUPPORT) {
-					// FE M4: the ball-side full-back pushes on (ours), then the
-					// FieldEvaluator spacing refinement and onside clamp.
-					if player.Intent == PlayerIntent_HOLD_SHAPE {
-						target = e.feM4FullBackPush(player, target, carrier)
-					}
-					target = e.feM4Compact(player, target, carrier)
-					target = e.feM4Refine(player, target, carrier, lineFor(player.IsHomeTeam))
-				}
-				auditM4 := target
-				// M10 attack structure (fe_m10_structure.go): width and depth.
-				target = e.feM10Structure(player, target, carrier, lineFor(player.IsHomeTeam))
-				auditM10S := target
-				target = e.feM10GetOpen(player, target, carrier, lineFor(player.IsHomeTeam))
-				if auditM4 != auditBase {
-					owner = TargetOwner_M4
-					reason = TargetReason_SPACING
-				}
-				if auditM10S != auditM4 || target != auditM10S {
-					owner = TargetOwner_M10
-					reason = TargetReason_STRUCTURE
-					if target != auditM10S {
-						reason = TargetReason_GET_OPEN
-					}
-				}
+				var structured Vector2F
+				target, structured, owner, reason, refiner = e.composeAttack(player, target, carrier,
+					lineFor(player.IsHomeTeam), dutyOK, owner, reason)
 				if e.diag.Audit {
-					e.auditLayers(player, dutyOK, auditBase, auditM4, auditM10S, target)
+					e.auditLayers(player, dutyOK, auditBase, structured, target, owner)
 				}
 			}
 		} else if carrier != nil {
@@ -810,6 +795,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 		}
 		player.TacticalTarget = target
 		player.TargetOwner = owner
+		player.TargetRefiner = refiner
 		player.TargetReason = reason
 		player.UrgentMovement = urgentTarget
 	}

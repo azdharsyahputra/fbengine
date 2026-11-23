@@ -244,8 +244,8 @@ func (e *MatchEngine) feM4Refine(player *MatchPlayer, base Vector2F, carrier *Ma
 
 	due := !s.ready || int(st.refresh%feM4RefineGroups) == slot%feM4RefineGroups
 	if due {
-		var cand [8]feM1Vec
-		var bonus [8]float64
+		var cand [24]feM1Vec
+		var bonus [24]float64
 		n := 0
 		cand[n] = feM1Vec{bx, by}
 		n++
@@ -279,11 +279,26 @@ func (e *MatchEngine) feM4Refine(player *MatchPlayer, base Vector2F, carrier *Ma
 		if carrier != nil {
 			carrierM = feM1ToM(carrier.Position)
 		}
+		// Getting open (Phase 2: our M10 rule folded into the refinement, no
+		// longer a later overwrite): an attacker ahead of the ball whose lane
+		// is shut or who is tight to a defender also weighs the spots 3-6 m
+		// across or short, and the clear lane is scored for him.
+		openSeek := e.feM10SeeksOpen(player, carrier, carrierM, feM1Vec{bx * dir, by})
+		if openSeek {
+			for _, st := range feM10OpenSteps {
+				c := feM1Vec{bx + st[0], by + st[1]}
+				if c.X > legalX || c.X-carrierM.X*dir < 1.0 || math.Abs(c.Y) > feM1HalfWidth-feM4TargetInset {
+					continue
+				}
+				cand[n] = c
+				n++
+			}
+		}
 		best, bestScore := 0, math.Inf(-1)
 		for i := 0; i < n; i++ {
 			c := cand[i]
 			score := e.feM4Score(player, home, dir, c) + bonus[i]
-			if no10 {
+			if no10 || openSeek {
 				w := feM1Vec{c.X * dir, c.Y}
 				if e.feM4LaneClear(home, carrierM, w, feM4LaneRadius) {
 					score += feM4LaneWeight

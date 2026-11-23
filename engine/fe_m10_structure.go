@@ -112,7 +112,8 @@ func (e *MatchEngine) feM10NearSupport() (depth, width float64) {
 	return e.cfg.M10.NearDepth, e.cfg.M10.NearWidth
 }
 
-// Getting open (ours): an attacker ahead of the ball whose lane from the
+// Getting open (ours, folded into the M4 refinement in Phase 2): an attacker
+// ahead of the ball whose lane from the
 // carrier is shut, or who stands within feM10OpenSpace of a defender, moves to
 // the spot within a few metres that is open (clear lane) and furthest from the
 // nearest defender — the separation a real receiver makes before he asks for
@@ -126,52 +127,18 @@ const (
 
 var feM10OpenSteps = [...][2]float64{{0, 3}, {0, -3}, {-3, 0}, {3, 0}, {0, 6}, {0, -6}, {-3, 4}, {-3, -4}, {3, 4}, {3, -4}, {-6, 0}}
 
-func (e *MatchEngine) feM10GetOpen(player *MatchPlayer, target Vector2F, carrier *MatchPlayer, offsideLine float64) Vector2F {
-	if !e.cfg.Modules.M10Structure || carrier == nil || player.Player == nil || player.IsGoalkeeper || player.IsMakingRun {
-		return target
-	}
-	switch player.Intent {
-	case PlayerIntent_HOLD_SHAPE, PlayerIntent_OFFER_SUPPORT:
-	default:
-		return target
-	}
-	if r := player.Player.GetRole(); r == PlayerRole_CB {
-		return target
+// feM10SeeksOpen: the M4 refinement should look for an open spot for this
+// player (ahead of the ball, lane shut or a defender within OpenSpace).
+func (e *MatchEngine) feM10SeeksOpen(player, carrier *MatchPlayer, carrierM, t feM1Vec) bool {
+	if !e.cfg.Modules.M10Structure || carrier == nil || carrier == player || player.Player == nil ||
+		player.IsGoalkeeper || player.IsMakingRun || player.Player.GetRole() == PlayerRole_CB {
+		return false
 	}
 	home := player.IsHomeTeam
-	dir := feM1Dir(home)
-	from := feM1ToM(carrier.Position)
-	t := feM1ToM(target)
-	if (t.X-from.X)*dir < feM10OpenAhead {
-		return target
+	if (t.X-carrierM.X)*feM1Dir(home) < feM10OpenAhead {
+		return false
 	}
-	space := e.feM2NearestOpponent(home, t)
-	lane := e.feM4LaneClear(home, from, t, feM10OpenRadius)
-	if lane && space >= feM10OpenSpace {
-		return target
-	}
-	offX := feM1ToM(Vector2F{offsideLine, 0.5}).X * dir
-	legal := math.Max(0.0, math.Max(offX, from.X*dir)) - 1.0
-	best, bestScore := t, space+feM10OpenStay
-	if !lane {
-		bestScore = math.Inf(-1)
-	}
-	for _, s := range feM10OpenSteps {
-		c := feM1Vec{t.X + s[0]*dir, t.Y + s[1]}
-		if c.X*dir > legal || math.Abs(c.Y) > feM1HalfWidth-feM4TargetInset {
-			continue
-		}
-		if (c.X-from.X)*dir < 1.0 || !e.feM4LaneClear(home, from, c, feM10OpenRadius) {
-			continue
-		}
-		sc := math.Min(e.feM2NearestOpponent(home, c), feM10OpenSpace*1.5) - 0.05*math.Hypot(s[0], s[1])
-		if sc > bestScore {
-			best, bestScore = c, sc
-		}
-	}
-	p := feM1ToPitch(best)
-	return Vector2F{hClamp(p.X, Pitch_PLAYER_MIN_X, Pitch_PLAYER_MAX_X),
-		hClamp(p.Y, Pitch_PLAYER_MIN_Y, Pitch_PLAYER_MAX_Y)}
+	return !e.feM4LaneClear(home, carrierM, t, feM10OpenRadius) || e.feM2NearestOpponent(home, t) < feM10OpenSpace
 }
 
 // Marking distance (ours, M10). Measured on the SkillCorner tracking, the

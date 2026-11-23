@@ -472,6 +472,7 @@ func (e *MatchEngine) startShootout() {
 		player.MovementTarget = player.Position
 		player.TacticalTarget = player.Position
 		player.TargetOwner = TargetOwner_P12
+		player.TargetRefiner = TargetOwner_NONE
 		player.TargetReason = TargetReason_SHOOTOUT
 	}
 	e.updateTeamPhases()
@@ -763,6 +764,7 @@ func (e *MatchEngine) updateMovement(dt float64) {
 			if !(e.ball.IsPass && e.ball.IntendedReceiver == player.Player) {
 				player.TacticalTarget = e.goalkeeperTarget(player, holder)
 				player.TargetOwner = TargetOwner_P12
+				player.TargetRefiner = TargetOwner_NONE
 				player.TargetReason = TargetReason_GK
 			}
 		}
