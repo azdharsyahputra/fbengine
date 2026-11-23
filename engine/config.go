@@ -149,6 +149,12 @@ type M3Config struct {
 	// the attacking direction (otherwise settled moves walk-jog at ~0.19).
 	CatchUpShare    float64 `json:"catch_up_share"`    // cs
 	CatchUpDistance float64 `json:"catch_up_distance"` // cx
+	// CatchUpRun: the catch-up and full-back push runs are runs, not settled
+	// adjustments, so the adjustment pace cap (0.9 + 0.2 m/s per metre of
+	// run) does not apply, the catch-up reads the tactical spot and also
+	// applies to attacking-transition support (false: go4-go14, they moved
+	// at ~2-3 m/s; go15 true).
+	CatchUpRun bool `json:"catch_up_run"` // cr (0/1)
 }
 
 // M8Config is the M8 planner calibration.
@@ -168,6 +174,19 @@ type M10Config struct {
 	RetreatMid  float64 `json:"retreat_mid"`   // rm
 	BlockLift   float64 `json:"block_lift"`    // bl
 	BlockLength float64 `json:"block_length"`  // bn
+	// OverlapLead: the overlapping full-back's spot is at least this far (m)
+	// ahead of the ball, in the touchline lane, onside, when the ball is on
+	// his flank (0: his shape spot + 18 m, go4-go14; go15 6).
+	OverlapLead float64 `json:"overlap_lead"` // ol
+	// FullBackTrail: in the opponent half the ball-side full-back on shape
+	// duty is at most this far (m) behind the ball (12: go4-go14).
+	FullBackTrail float64 `json:"full_back_trail"` // ft (go15 2)
+	// FullBackWeak: the weak-side full-back at most this far (m) behind the
+	// ball (22: go4-go14; go15 12).
+	FullBackWeak float64 `json:"full_back_weak"` // fw
+	// FullBackStart: team-frame ball x (m) from which the full-backs join
+	// (-5: go4-go14; go15 -20).
+	FullBackStart float64 `json:"full_back_start"` // fz
 }
 
 // EngineConfig is the complete gameplay configuration of one match.
@@ -227,7 +246,7 @@ func DefaultConfig() EngineConfig {
 		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
-		M3:    M3Config{CatchUpShare: 0.6, CatchUpDistance: 8},
+		M3:    M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
 		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
 		M8:    M8Config{Confidence: feM8Confidence, ExpandCarry: true},
@@ -236,6 +255,10 @@ func DefaultConfig() EngineConfig {
 			BoxGoalSide: 1.5, GoalSide: 1.5, TightWeight: 0.7,
 			RetreatFwd: 0.0, RetreatMid: 6.0,
 			BlockLift: 0.0, BlockLength: 0.0,
+			// go15: full-backs join the attack from 20 m in their own half,
+			// ball side level with the ball, weak side 12 m behind; an overlap
+			// goes 6 m past the ball.
+			FullBackTrail: 2.0, FullBackWeak: 12.0, FullBackStart: -20.0, OverlapLead: 6.0,
 		},
 	}
 }
@@ -273,6 +296,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M3.CatchUpShare = f
 			case "cx":
 				c.M3.CatchUpDistance = f
+			case "cr":
+				c.M3.CatchUpRun = f != 0
 			case "rc":
 				c.M1.RecoverClearance = f
 			case "fb":
@@ -412,6 +437,14 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			m.RetreatFwd = f
 		case "rm":
 			m.RetreatMid = f
+		case "ol":
+			m.OverlapLead = f
+		case "ft":
+			m.FullBackTrail = f
+		case "fw":
+			m.FullBackWeak = f
+		case "fz":
+			m.FullBackStart = f
 		default:
 			return false
 		}

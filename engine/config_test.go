@@ -18,7 +18,8 @@ import (
 // a37a9a66… go12: m3.catch_up_share 0.6.
 // d98afd8a… go13: m1.contain_window 4.
 // 9382afd0… go14: m1.rest_gap 9, m1.full_back_cross -2.
-const goldenDefaultHash = "9382afd0dd4d358ed8de7e56ad1bac396d2d0abf48d8576a7a8b355a84f1233d"
+// cc92ffeb… go15: m3.catch_up_run, m10 full-back trail 2 / weak 12 / start -20, overlap_lead 6.
+const goldenDefaultHash = "cc92ffebd0b279531415753b71331b445a02023b36bd4d36bd46d8c8b174fe3b"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

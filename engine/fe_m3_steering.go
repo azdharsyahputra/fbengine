@@ -161,6 +161,20 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 		fatigue := hClamp((1.0-player.Stamina)*INVERSE_FATIGUE_RANGE, 0.0, 1.0)
 		topSpeed := math.Min(e.currentTopSpeed(player), feM3SpeedCap)
 		share := feM3Effort(player.Intent, phase)
+		// A catch-up or push run is a run, not a settled adjustment
+		// (m3.catch_up_run): the adjustment pace cap does not apply, and the
+		// catch-up reads the tactical spot (not the lagging steering point).
+		running := false
+		attackDir := -1.0
+		if player.IsHomeTeam {
+			attackDir = 1.0
+		}
+		catchUp := func() bool {
+			if !e.cfg.M3.CatchUpRun {
+				return offset.X*attackDir > e.cfg.M3.CatchUpDistance
+			}
+			return (raw.X-player.Position.X)*Pitch_LENGTH_METRES*attackDir > e.cfg.M3.CatchUpDistance
+		}
 		if share == feM3SettledShare {
 			// A settled adjustment walks when it is short and jogs when it is
 			// long (ours): spreads the speed spectrum instead of one pace.
@@ -179,19 +193,15 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 			// attacking direction moves up at CatchUpShare (a jog-run), so the
 			// pivot does not trail an attack by 30 m; other settled moves,
 			// including runs at the ball, keep the walk-jog.
-			if cu := e.cfg.M3.CatchUpShare; cu > 0 {
-				dir := -1.0
-				if player.IsHomeTeam {
-					dir = 1.0
-				}
-				if offset.X*dir > e.cfg.M3.CatchUpDistance {
-					share = math.Max(share, cu)
-				}
+			if cu := e.cfg.M3.CatchUpShare; cu > 0 && catchUp() {
+				share = math.Max(share, cu)
+				running = true
 			}
 		}
 		if e.feM4Pushed(player) {
 			// The ball-side full-back getting forward runs (ours).
 			share = math.Max(share, feM3FullBackPushShare)
+			running = true
 		}
 		if player.Intent == PlayerIntent_OFFER_SUPPORT && phase == TeamPhase_ATTACKING_TRANSITION &&
 			!feM1Forward(player) {
@@ -203,6 +213,11 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 			}
 			if ahead < feM3TransitionCatchUp {
 				share = feM3JogShare + (feM3SprintShare-feM3JogShare)*feM3TransitionSupportBoost
+			}
+			// ...and catches up with the play like a settled supporter.
+			if cu := e.cfg.M3.CatchUpShare; e.cfg.M3.CatchUpRun && cu > 0 && catchUp() {
+				share = math.Max(share, cu)
+				running = true
 			}
 		}
 		// A player on an M1 task (press, cover, screen, box marker, recovery
@@ -232,7 +247,7 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 		speedCap := math.Min(topSpeed, player.MaxSpeed*
 			(1.0-Player_FATIGUE_WORK_RATE_LOSS*fatigue+e.talkOf(player.IsHomeTeam)+
 				e.shoutWorkRate(player.IsHomeTeam))*share)
-		if !player.IsGoalkeeper && !backLine && !m1Task {
+		if !player.IsGoalkeeper && !backLine && !m1Task && !(running && e.cfg.M3.CatchUpRun) {
 			speedCap = math.Min(speedCap, s.feM3AdjustCap(player))
 		}
 		if s.idling {

@@ -43,6 +43,14 @@ type auditState struct {
 	carry auditCarryState
 	// Back line while defending: CB pair <2 m and both full-backs on one
 	// half of the width, with the owner:reason of the players involved.
+	// Attacking full-backs (own side holds, ball in the final third): owner:reason
+	// and depth behind the ball.
+	fbAtt struct {
+		why   map[string]int
+		n     int
+		depth []float64
+		lag   map[string][]float64 // per reason: target behind ball, position behind target
+	}
 	back struct {
 		steps, stack, same int
 		stackWhy, sameWhy  map[string]int
@@ -167,6 +175,7 @@ func (e *MatchEngine) auditStep() {
 		e.auditBuildUp(carrier)
 		e.auditChase(carrier, ball)
 		e.auditBackLine(carrier)
+		e.auditFullBackAttack(carrier)
 		e.auditVisualSteal(carrier, ball)
 		cm := toMetres(carrier.Position)
 		a.carrierGap = append(a.carrierGap, math.Hypot(ball.X-cm.X, ball.Y-cm.Y))
@@ -338,6 +347,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditPivotReport(w)
 	e.auditCarryReport(w)
 	e.auditBackReport(w)
+	e.auditFullBackReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -972,4 +982,89 @@ func (e *MatchEngine) auditBackReport(w io.Writer) {
 	}
 	fmt.Fprintf(w, "AUDIT back line (ball held by the opponent): CBs <2 m %.1f%% |%s\n", 100*float64(b.stack)/float64(b.steps), top(b.stackWhy, max(b.stack, 1)))
 	fmt.Fprintf(w, "AUDIT back line: both FBs on one half of the width %.1f%% |%s\n", 100*float64(b.same)/float64(b.steps), top(b.sameWhy, max(b.same, 1)))
+}
+
+func (e *MatchEngine) auditFullBackAttack(carrier *MatchPlayer) {
+	f := &e.audit.fbAtt
+	if f.why == nil {
+		f.why = map[string]int{}
+	}
+	dir := feM1Dir(carrier.IsHomeTeam)
+	ball := feM1ToM(e.ball.Position).X * dir
+	zone := "F "
+	if ball < feM1HalfLength/3 {
+		if ball < -feM1HalfLength/3 {
+			return
+		}
+		zone = "M "
+	}
+	for i := range e.players {
+		q := &e.players[i]
+		if !active(q) || q.IsHomeTeam != carrier.IsHomeTeam || q.Player == nil || q == carrier {
+			continue
+		}
+		if r := roleShortKeys[q.Player.GetRole()]; r != "ROLE_SHORT_LB" && r != "ROLE_SHORT_RB" {
+			continue
+		}
+		f.n++
+		k := q.TargetOwner.String() + ":" + q.TargetReason.String()
+		if q.TargetRefiner != TargetOwner_NONE {
+			k += "+" + q.TargetRefiner.String()
+		}
+		bs := " far"
+		if feM1ToM(q.BasePosition).Y*feM1ToM(carrier.Position).Y > 0 {
+			bs = " ball"
+		}
+		k = zone + k + bs
+		f.why[k]++
+		f.depth = append(f.depth, ball-feM1ToM(q.Position).X*dir)
+		if f.lag == nil {
+			f.lag = map[string][]float64{}
+		}
+		t := feM1ToM(q.TacticalTarget).X * dir
+		f.lag[k+" tgtBehindBall"] = append(f.lag[k+" tgtBehindBall"], ball-t)
+		f.lag[k+" posBehindTgt"] = append(f.lag[k+" posBehindTgt"], t-feM1ToM(q.Position).X*dir)
+		f.lag[k+" fwdSpeed"] = append(f.lag[k+" fwdSpeed"], q.Velocity.X*dir)
+		f.lag[k+" moveBehindTgt"] = append(f.lag[k+" moveBehindTgt"], t-feM1ToM(q.MovementTarget).X*dir)
+	}
+}
+
+func (e *MatchEngine) auditFullBackReport(w io.Writer) {
+	f := &e.audit.fbAtt
+	if f.n == 0 {
+		return
+	}
+	d := append([]float64(nil), f.depth...)
+	sort.Float64s(d)
+	type kv struct {
+		k string
+		v int
+	}
+	var xs []kv
+	for k, v := range f.why {
+		xs = append(xs, kv{k, v})
+	}
+	sort.Slice(xs, func(i, j int) bool { return xs[i].v > xs[j].v || xs[i].v == xs[j].v && xs[i].k < xs[j].k })
+	fmt.Fprintf(w, "AUDIT attacking full-backs (F final / M middle third, ball/far flank): behind ball median %.0f m |", d[len(d)/2])
+	for i, x := range xs {
+		if i >= 14 {
+			break
+		}
+		fmt.Fprintf(w, " %s %d%% |", x.k, 100*x.v/f.n)
+	}
+	fmt.Fprintln(w)
+	var ks []string
+	for k, v := range f.lag {
+		if len(v) > f.n/20 {
+			ks = append(ks, k)
+		}
+	}
+	sort.Strings(ks)
+	fmt.Fprint(w, "AUDIT attacking full-backs medians (m):")
+	for _, k := range ks {
+		v := append([]float64(nil), f.lag[k]...)
+		sort.Float64s(v)
+		fmt.Fprintf(w, " %s %.0f |", k, v[len(v)/2])
+	}
+	fmt.Fprintln(w)
 }

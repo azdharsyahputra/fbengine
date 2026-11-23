@@ -2,6 +2,43 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go15: attacking full-backs (2026-11-23, partial)
+
+From the go11 critique, problem 4. New probe lines: `AUDIT attacking full-backs`, with owner:reason per zone and flank, target and position versus the ball, and forward speed.
+
+- **Real targets** (SkillCorner, ball on a flank, the team in possession):
+  - when someone else holds the ball, the ball-side FB is about level with it (middle third +3 to +6 m, final third −7 to +1 m);
+  - in the final third the FB holds the wide ball 18–30% of the time.
+  - Box runners at crosses were already fine (engine 1.4–1.6 attackers in the box, real 0.9–1.1).
+- **Causes:**
+  1. The P12 overlap spot was the shape spot + 18 m, still 13 m behind the ball.
+  2. M3 capped every shape move at the settled-adjustment pace (0.9 + 0.2 m/s per metre of run). The M4 push and the go12 catch-up therefore moved at ~2–3 m/s whatever their effort.
+  3. The catch-up read the lagging steering point, so it flickered.
+  4. In an attacking transition, support jogged.
+  5. The M10 full-back rule joined only from −5 m and trailed the ball by 12 m (ball side) / 22 m (far side).
+- **Changes:**
+  - `m3.catch_up_run`: catch-up and push runs skip the adjustment cap, catch-up reads the tactical spot, and transition support catches up too.
+  - `m10.overlap_lead` 6: the overlap goes 6 m past the ball, in the touchline lane, onside. The winger moves to the half-space (M10).
+  - `m10.full_back_start` −20, `full_back_trail` 2, `full_back_weak` 12.
+- **Result (10 seeds vs go14):**
+
+  | | go14 | go15 | Real |
+  |---|---|---|---|
+  | Final-third wide ball held by the FB | 9% | 16% | 18–30% |
+  | Ball-flank FB ahead of his winger, final third | 7% | 13% | 31–49% |
+  | Same, middle third | 11% | 11% | 16–31% |
+  | Non-holder ball-side FB vs ball, middle / final | −17 / −23 m | −16 / −19 m | +3…+6 / −7…+1 m |
+  | DM–AM | 14.5 m | 12.9 m | 8.6 m |
+  | Fouls per side | 18.5 | 20 | ~10 |
+
+  Other metrics stay within seed noise.
+- **Still open:**
+  - In the middle third the engine's winger holds the wide ball 55–64% of the time (real ~30%), usually straight from deep, while the FB is still back.
+  - Real wide build-up goes through CB, DM and FB.
+  - A reactive structure cannot close that gap. The open question is who receives on the flank (M2 / support).
+- **Tried, not kept:** overlaps outside the final-third phase (from halfway), and a faster push share. Both were within seed noise.
+- **Reproduce go14:** `FMENGINE_M1=cr=0 FMENGINE_M10=ol=0,fz=-5,ft=12,fw=22`.
+
 ## go14: back-line discipline (2026-11-23)
 
 From the go11 critique, problem 3. New probe lines: `AUDIT back line`, with the owner:reason of the CB pair and of the crossed full-back.

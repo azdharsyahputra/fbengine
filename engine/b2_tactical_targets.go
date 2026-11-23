@@ -420,6 +420,21 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 					reason = TargetReason_OVERLAP
 					target.X += attackDirection *
 						Shape_FINAL_THIRD_FULLBACK_OVERLAP
+					// ours (go15): a real overlap goes past the ball on the
+					// outside of the winger (who moves to the half-space, M10),
+					// instead of arriving 13 m behind it.
+					side := b2Sign(player.BasePosition.Y > Pitch_CENTRE, 1.0, -1.0)
+					if lead := e.cfg.M10.OverlapLead; lead > 0 &&
+						(carrier.Position.Y-Pitch_CENTRE)*side > 0 {
+						ahead := carrier.Position.X + attackDirection*lead/Pitch_LENGTH_METRES
+						onside := lineFor(player.IsHomeTeam) - attackDirection*Shape_RUN_ONSIDE_BUFFER
+						if player.IsHomeTeam {
+							target.X = math.Min(math.Max(target.X, ahead), onside)
+						} else {
+							target.X = math.Max(math.Min(target.X, ahead), onside)
+						}
+						target.Y = Pitch_CENTRE + side*(feM1HalfWidth-feM10WingerTouchline)/Pitch_WIDTH_METRES
+					}
 				} else if dutyOK {
 					// FE M5 duty (Intent.fs:253-262): support at the duty target;
 					// the Runner of a depth pattern runs beyond.

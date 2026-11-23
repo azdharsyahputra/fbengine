@@ -28,9 +28,6 @@ const (
 	feM10WingerHalfSpace = 19.0 // |y| when the full-back overlaps outside him
 	feM10WingerLead      = 6.0  // ball-side winger: at most this ahead of the ball
 	feM10WingerOnside    = 2.0  // weak-side winger: behind the line
-	feM10FullBackStart   = -5.0 // team-frame ball x (m) where the full-backs join
-	feM10FullBackTrail   = 12.0 // ball-side full-back at most this behind the ball
-	feM10FullBackWeak    = 22.0 // weak-side full-back at most this behind the ball
 	feM10FullBackTuck    = 22.0 // weak-side full-back |y|
 )
 
@@ -67,13 +64,13 @@ func (e *MatchEngine) feM10Structure(player *MatchPlayer, target Vector2F, carri
 		}
 		tx = math.Min(tx, legal-feM10WingerOnside*0.5)
 	case PlayerRole_LB, PlayerRole_RB:
-		if bx < feM10FullBackStart {
+		if bx < e.cfg.M10.FullBackStart {
 			return target
 		}
 		if ballSide {
-			tx = math.Max(tx, bx-feM10FullBackTrail)
+			tx = math.Max(tx, bx-e.cfg.M10.FullBackTrail)
 		} else {
-			tx = math.Max(tx, bx-feM10FullBackWeak)
+			tx = math.Max(tx, bx-e.cfg.M10.FullBackWeak)
 			ty = side * math.Min(math.Abs(ty), feM10FullBackTuck)
 		}
 	default:
