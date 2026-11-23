@@ -1438,6 +1438,35 @@ func (e *MatchEngine) auditShot(shooter *MatchPlayer, xg float64, header, setPie
 	case xg >= 0.03:
 		xb = "xg.03-.05"
 	}
+	// defenders (outfield) within 1.6 m / 1.0 m of the line shooter -> goal centre
+	sx, sy := shooter.Position.X*Pitch_LENGTH_METRES, shooter.Position.Y*Pitch_WIDTH_METRES
+	gy := Pitch_WIDTH_METRES / 2
+	ldx, ldy := gx-sx, gy-sy
+	l2 := math.Max(ldx*ldx+ldy*ldy, 1e-9)
+	c16, c10 := 0, 0
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsGoalkeeper || p.IsHomeTeam == shooter.IsHomeTeam {
+			continue
+		}
+		px, py := p.Position.X*Pitch_LENGTH_METRES, p.Position.Y*Pitch_WIDTH_METRES
+		t := ((px-sx)*ldx + (py-sy)*ldy) / l2
+		if t <= 0 || t >= 1 {
+			continue
+		}
+		g := math.Hypot(px-(sx+ldx*t), py-(sy+ldy*t))
+		if g < 1.6 {
+			c16++
+		}
+		if g < 1.0 {
+			c10++
+		}
+	}
+	if !header && !penalty && !freeKick {
+		a.shots[fmt.Sprintf("lane16 %d", min(c16, 2))]++
+		a.shots[fmt.Sprintf("lane10 %d", min(c10, 2))]++
+		a.shots["lane all"]++
+	}
 	now := e.getSimulatedSeconds()
 	if now-a.lastShot < 10 {
 		a.shots["within10s"]++

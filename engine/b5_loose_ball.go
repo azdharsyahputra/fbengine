@@ -105,7 +105,7 @@ func (e *MatchEngine) resolveLooseBall() {
 					reach = MatchRules_goalkeeperHandlingRadiusMetres(
 						player.HeightMetres, player.Goalkeeping, height, player.IsDiving)
 				} else {
-					reach = Defending_BLOCK_DISTANCE_METRES
+					reach = e.cfg.M6.BlockReach
 				}
 			}
 		} else if hands {

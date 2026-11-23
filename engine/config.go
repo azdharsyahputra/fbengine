@@ -156,6 +156,10 @@ type M6Config struct {
 	// the defender's own goal; elsewhere he keeps chasing for a standing
 	// tackle. 0 = no gate (slides anywhere, go16/F2c).
 	SlideDepth float64 `json:"slide_depth"` // gz
+	// BlockReach (m): an outfielder can block a shot passing within this of
+	// him (Player12 1.6). Metrica: ~73% of shots pass within 1.6 m of a
+	// defender, yet only ~6% (Opta EPL ~25%) are blocked.
+	BlockReach float64 `json:"block_reach"` // br
 }
 
 // M3Config is movement execution (Phase 2).
@@ -358,7 +362,7 @@ func DefaultConfig() EngineConfig {
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
 		M3: M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
-		M6: M6Config{SlideDepth: 35},
+		M6: M6Config{SlideDepth: 35, BlockReach: 0.7},
 		TeamShape: TeamShapeConfig{RunQuota: 2, OverlapQuota: 1, BoxQuota: 2, PressQuota: 1,
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
@@ -495,6 +499,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.SpeedTable = f != 0
 			case "gz":
 				c.M6.SlideDepth = f
+			case "br":
+				c.M6.BlockReach = f
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":

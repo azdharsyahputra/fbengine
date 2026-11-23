@@ -148,3 +148,27 @@ Offside mendekati EPL (1.8). Gol 3.9 masih di batas +20%. Skor naik 0.04 hanya k
 **Sisa (masih ~2× EPL 13/tim):**
 1. Porsi diblok ~55% (asli ~25%): blok terlalu mudah, atau tembakan dilepas ke tubuh bek.
 2. Tembakan dari bola mati ~26 per laga, termasuk ~13 sundulan (EPL ~5 sundulan per laga); corner ~12 per tim (asli 5.3).
+
+## Ronde 7: blok tembakan
+
+**Ukur:** jalur tembakan (open play) saat bola ditendang, bek outfield dalam jarak dari garis penembak → tengah gawang.
+
+| | Metrica (48 tembakan) | Engine (6 seed) |
+|---|---|---|
+| Bek dalam 1.6 m: 0 / 1 / 2+ | 27% / 52% / 21% | 25% / 61% / 13% |
+| Bek dalam 1.0 m: 0 / 1 / 2+ | 48% / 46% / 6% | 41% / 52% / 7% |
+| Diblok | 6% (Opta EPL ~25%) | 52–56% |
+
+Pemilihan tembakan sudah realistis. Yang terlalu mudah adalah fisika blok: bek sampai 1.6 m dari jalur bola memblok dengan peluang 35–80%.
+
+**Perubahan:** `M6.BlockReach` (kunci `br`), 1.6 m (Player12) → **0.7 m**.
+
+| 10 seed | Diblok | Tembakan/tim | Tembakan susulan <10 dtk | Corner/tim | Gol | Tepat sasaran/tim | Skor |
+|---|---|---|---|---|---|---|---|
+| `br=1.6` | 56% | 30.6 | 8.6 | 12.3 | 3.9 | 5.0 | 0.792 |
+| `br=1.0` | 35% | 24.3 | 3.7 | 8.9 | 4.2 | 6.0 | 0.773 |
+| **`br=0.7` (default)** | **25%** | 23.1 | 2.9 | 7.8 | 4.6 | 6.4 | **0.763** |
+
+Penjaga bentuk sama (2/6). Scramble setelah blok berkurang, corner turun.
+
+**Konsekuensi:** gol 4.6 per laga, di atas batas +20% (3.94); tepat sasaran 6.4 per tim (EPL ~4.5). Berikutnya: kualitas/xG tembakan dan kiper. Tembakan masih ~23 per tim (EPL ~13).
