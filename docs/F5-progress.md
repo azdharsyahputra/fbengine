@@ -333,3 +333,28 @@ Target bergerak konsisten, tetapi penjaga recvPress jebol di dua set dan gol nai
 3. Masalah nyata: bola dipertahankan terlalu mudah di semua zona (penjaga `kept` 91, rentang 74–86), dan build-up lawan hampir tidak ditekan.
 
 **Usulan (menunggu keputusan):** ganti penjaga recvPress gabungan dengan tiga penjaga per zona (rentang Metrica..SkillCorner) supaya tidak menghukum pergeseran komposisi.
+
+## Ronde 15: penjaga per zona + BypassTrot default
+
+**Penjaga diganti** (keputusan user, 2026-11-23): `recvPress` gabungan (24–37) → tiga penjaga bentuk per zona penerima (`audit/recvzone.js`, rentang Metrica..SkillCorner dilebarkan sedikit):
+
+| Penjaga | Rentang |
+|---|---|
+| `recvOwn` | 15–25 |
+| `recvMid` | 21–33 |
+| `recvFinal` | 36–58 |
+
+Dengan penjaga baru default lama gagal di ketiganya (11 / 37 / 63); sebelumnya lolos karena error berlawanan saling menutupi.
+
+**`TeamShape.BypassTrot` jadi default** (20 seed, ronde 13):
+
+| 20 seed | chase3 | liar5 | recvOwn / Mid / Final | Gol | Foul/tim | Skor |
+|---|---|---|---|---|---|---|
+| sebelum | 17.5 | 24 | 11.5 / 36.5 / 62.5 | 4.3 | 19.7 | 0.769 |
+| **`bt=1`** | **14.5** | **19.9** | 13.5 / 36.5 / 62.5 | 4.9 | 18.8 | 0.781 |
+
+Tidak ada penjaga per zona yang memburuk; recvOwn membaik. Gol +0.6 diterima, untuk dikejar lewat penjaga `kept`.
+
+**Berikutnya:**
+1. **Bola terlalu mudah dipertahankan:** kept per zona 98 / 93 / 82 vs asli 74–87 / 83–86 / 62–69, bahkan saat ditekan. Kemungkinan juga menekan gol turun.
+2. Build-up lawan kurang ditekan (recvOwn 13 vs 15–25).

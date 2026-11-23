@@ -4,7 +4,8 @@
 // speed shares and long carries are judged AT ONCE against the Metrica full-tracking range.
 // The old cek metrics are guards (ranges from F0, Metrica and SkillCorner), in two groups:
 //   shape guards (the Team Shape Controller's job, gate of F2/F3): chase3, liar5, dmAm,
-//     own3in5, mid3in5, recvPress;
+//     own3in5, mid3in5, recvOwn/recvMid/recvFinal (receivers pressed <4 m per receiver zone,
+//     audit/recvzone.js; replaced the aggregate recvPress in F5, which hid opposite errors);
 //   decision guards (the carrier's choices, M2; gate of F5): mundur, kept, bwFinal, bwMid, possMed.
 // A change is accepted only if the total score improves and no guard breaks.
 //
@@ -106,8 +107,9 @@ for (const [label, get, floor] of metrics) {
 const score = total / n;
 
 // guards (old cek metrics; ranges = Metrica .. SkillCorner from F0, widened a little)
+// recv*: Metrica .. SkillCorner per receiver zone (own 23/16, mid 22/32, final 38/57), widened a little
 const GUARD = { chase3: [5, 10], liar5: [6, 10.5], mundur: [22, 35], dmAm: [7, 10.5], own3in5: [36, 50], mid3in5: [42, 54],
-  recvPress: [24, 37], kept: [74, 86], bwFinal: [27, 48], bwMid: [22, 34], possMed: [4.5, 7.5] };
+  recvOwn: [15, 25], recvMid: [21, 33], recvFinal: [36, 58], kept: [74, 86], bwFinal: [27, 48], bwMid: [22, 34], possMed: [4.5, 7.5] };
 const DECISION = new Set(['mundur', 'kept', 'bwFinal', 'bwMid', 'possMed']);
 const guards = [];
 if (guardDir) {
@@ -115,6 +117,11 @@ if (guardDir) {
   for (const [k, [lo, hi]] of Object.entries(GUARD)) {
     const m = line.match(new RegExp(`\\b${k} ([0-9.]+)`)); if (!m) continue;
     const v = +m[1]; guards.push({ k, v, lo, hi, ok: v >= lo && v <= hi, decision: DECISION.has(k) });
+  }
+  const rz = JSON.parse(execFileSync('node', [path.join(HERE, 'recvzone.js'), '--json', ...args], { maxBuffer: 1 << 26 }).toString().trim().split('\n').pop());
+  for (const k of ['recvOwn', 'recvMid', 'recvFinal']) {
+    const [lo, hi] = GUARD[k], v = Math.round(rz[k]);
+    guards.push({ k, v, lo, hi, ok: v >= lo && v <= hi, decision: false });
   }
 }
 

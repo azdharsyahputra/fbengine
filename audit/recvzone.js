@@ -1,8 +1,9 @@
 // recvzone.js files... (audit/recvzone.js) : press.js receptions split by the receiver's zone (own/mid/final third of
 // his team's attack), share of receptions and % pressed (<4 m) per zone; also keeper index check
 const path=require('path');
+const asJson=process.argv[2]==='--json';const files=process.argv.slice(asJson?3:2);
 const Z=[0,35,70,200],acc=[0,1,2].map(()=>({n:0,p:0,k:0}));let gkNot0=0;
-for(const file of process.argv.slice(2)){
+for(const file of files){
  global.window={};const log=console.log;console.log=()=>{};require(path.resolve(file));console.log=log;
  const R=window.REPLAY,F=R.frames,S=47,T=R.ticks;
  const B=t=>[F[t*S]/10,F[t*S+1]/10,F[t*S+2]/10],P=(t,k)=>[F[t*S+3+2*k]/10,F[t*S+4+2*k]/10];
@@ -17,4 +18,5 @@ for(const file of process.argv.slice(2)){
   const z=depth<35?0:depth<70?1:2;acc[z].n++;if(m<4)acc[z].p++;if((c.h<11?0:1)===team)acc[z].k++;}
 }
 const N=acc.reduce((s,a)=>s+a.n,0);
+if(asJson){console.log(JSON.stringify({recvOwn:100*acc[0].p/acc[0].n,recvMid:100*acc[1].p/acc[1].n,recvFinal:100*acc[2].p/acc[2].n}));process.exit(0);}
 console.log(['own','mid','final'].map((nm,i)=>`${nm}: share ${(100*acc[i].n/N).toFixed(0)}% pressed ${(100*acc[i].p/acc[i].n).toFixed(0)}% kept ${(100*acc[i].k/acc[i].n).toFixed(0)}%`).join(' | ')+` | all pressed ${(100*acc.reduce((s,a)=>s+a.p,0)/N).toFixed(0)}% | files with GK not at index 0: ${gkNot0}`);
