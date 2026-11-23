@@ -88,3 +88,25 @@ Probe `AUDIT near-ball marking` (read-only): dari penyerang dalam 15 m dari bola
 - **Perubahan:** `TeamShape.MarkTight` (kunci `mt`, default 25). Di zona bahaya hanya penyerang dalam 25 m dari gawang yang dikawal 2 m; yang lebih jauh memakai jarak melebar `MarkSlope`.
 
 **Sisa:** 0–8 m dari bola tetap 40% (asli 29%). Itu bukan marker, tapi cover/first defender/presser kedua di sekitar pembawa bola.
+
+## Ronde 4: bek di sekitar pembawa bola (stop-loss)
+
+**Ukur** (`viz/crowd.js`, bertahan settled): jumlah bek di sekitar pembawa bola sudah realistis.
+
+| | Metrica | Default `mt=25` |
+|---|---|---|
+| Bek dalam 5 / 10 / 15 m dari pembawa | 0.60 / 1.64 / 2.97 | 0.68 / 1.71 / 2.92 |
+| Bek terdekat / kedua / ketiga (median) | 5.2 / 10.2 / 13.9 m | 4.2 / 9.9 / 14.1 m |
+| Teman pembawa dalam 10 m | 0.55 | 0.68 |
+
+**Hipotesis:** first defender contain terlalu dekat (2 m). Knob uji `cz`: jarak contain di luar press dan di luar zona bahaya.
+
+| 10 seed | Skor | Lolos | Bek terdekat | 0–8 m % <3 m | carry25 | Foul/tim |
+|---|---|---|---|---|---|---|
+| default | 0.792 | 99 | 4.2 m | 40% | 18.8 | 21.0 |
+| `cz=3.5` | 0.836 | 93 | 4.2 m | 39% | 28 | 20.1 |
+| `cz=4.5` | 0.879 | 89 | 4.6 m | 39% | 39 | 20.0 |
+
+**Gagal:** jarak ke pembawa hampir tidak berubah, zona 0–8 m tidak bergerak, dan pembawa mendapat ruang untuk giring panjang. Knob dibuang.
+
+**Stop-loss untuk zona 0–8 m.** Tiga hipotesis (jarak dasar marker, ketat-dekat-gawang, jarak contain) tidak menggerakkan angka 40% vs 29%. Diterima sebagai gap terdokumentasi. Petunjuk untuk nanti: angka ini lebih dipengaruhi teman pembawa yang terlalu dekat (0.68 vs 0.55 dalam 10 m, sisi menyerang) daripada posisi bek.
