@@ -26,6 +26,9 @@ type ModuleConfig struct {
 	M8Planner    bool `json:"m8_planner"`
 	M9Restart    bool `json:"m9_restart"`
 	M10Structure bool `json:"m10_structure"`
+	// TeamShape: the Team Shape Controller + Position Composer own the targets
+	// in live play (team_shape.go, team_shape_compose.go); off = go16.
+	TeamShape bool `json:"team_shape"`
 }
 
 // M2Config is the M2 race/value calibration (formerly feM2*V variables).
@@ -207,6 +210,69 @@ type EngineConfig struct {
 	M3      M3Config     `json:"m3"`
 	M8      M8Config     `json:"m8"`
 	M10     M10Config    `json:"m10"`
+	// TeamShape: the composer's rules (team_shape_compose.go).
+	TeamShape TeamShapeConfig `json:"team_shape"`
+}
+
+// TeamShapeConfig: the Position Composer's rules (docs/PLAN-team-shape.md §4.2),
+// swept together with the scorecard, never per metric.
+type TeamShapeConfig struct {
+	RunQuota     int     `json:"run_quota"`     // rq: runs in behind per side
+	OverlapQuota int     `json:"overlap_quota"` // oq
+	BoxQuota     int     `json:"box_quota"`     // bq: box runs / arrivals
+	PressQuota   int     `json:"press_quota"`   // xq: extra pressers (doubling)
+	MinSpacing   float64 `json:"min_spacing"`   // sm: metres between non-ball-job teammates
+	SupportDev   float64 `json:"support_dev"`   // sd: support / short options from the slot
+	CoverDev     float64 `json:"cover_dev"`     // vd: cover, screen, lane cover, marks
+	DutyDev      float64 `json:"duty_dev"`      // dd: M5 duties, transition support
+	WalkSpeed    float64 `json:"walk_speed"`    // ws (m/s): slot holder, target < JogDistance
+	JogSpeed     float64 `json:"jog_speed"`     // js
+	RunSpeed     float64 `json:"run_speed"`     // ru: target > RunDistance
+	JogDistance  float64 `json:"jog_distance"`  // jd (m)
+	RunDistance  float64 `json:"run_distance"`  // rd (m)
+	// TrotSpeed (m/s): a defender the ball has bypassed (it is between him and
+	// his goal) recovers at a trot unless the ball is within M1.BypassedSprintGoal
+	// of his goal (go10's rule, now in the composer).
+	TrotSpeed float64 `json:"trot_speed"` // tt
+	// CloseTime (s): a slot/offset target's gap is closed in this time on top of
+	// the target's own speed (feed-forward).
+	CloseTime float64 `json:"close_time"` // ct
+	// AnchorTime (s): the shape follows the ball through this time constant.
+	AnchorTime float64 `json:"anchor_time"` // at
+	// DepthDev (m): M1 protect depth may drop this far from the slot (runners).
+	DepthDev float64 `json:"depth_dev"` // pd
+	// DangerDepth (m): ball this close to the own goal line = M1 recover shape keeps its
+	// marking (offset) instead of the slot.
+	DangerDepth float64 `json:"danger_depth"` // dg
+	// MarkZone (m): ... and only for a player whose slot is this close to his goal line.
+	MarkZone float64 `json:"mark_zone"` // mz
+	// ShiftSpeed (m/s): a slot/offset holder within RunDistance of his target moves at
+	// most this fast (the block shuffles; it does not sprint with every pass).
+	ShiftSpeed float64 `json:"shift_speed"` // sh
+	// WalkZone (m): within this of the target a slot/offset holder walks.
+	WalkZone float64 `json:"walk_zone"` // wz
+	// NativeDefence: the defending side's jobs come from the Team Shape Controller
+	// (first defender, cover, markers, back line), not from M1's tasks.
+	NativeDefence bool `json:"native_defence"` // nv (0/1)
+	// KeepTime (s): the engaged first defender keeps the job unless another is this much faster.
+	KeepTime float64 `json:"keep_time"` // kt
+	// EngageDepth (m): within this of the own goal line a first defender always engages.
+	EngageDepth float64 `json:"engage_depth"` // ed
+	// CoverGap (m): the cover stands this far behind the first defender, toward the goal.
+	CoverGap float64 `json:"cover_gap"` // cg
+	// MarkRadius (m): near goal, a slot-holder this close to an attacker marks him.
+	MarkRadius float64 `json:"mark_radius"` // mr
+	// RunnerSpeed (m/s): an attacker running at the goal this fast past a back-line slot
+	// makes that slot-holder drop with him.
+	RunnerSpeed float64 `json:"runner_speed"` // rv
+	// PressOption (m): in the press, the carrier's nearest option within this is screened.
+	PressOption float64 `json:"press_option"` // po
+	// DefRunSpeed (m/s): a defender more than RunDistance from his slot returns at most this fast.
+	DefRunSpeed float64 `json:"def_run_speed"` // dv
+	// NearBall (m): attackers this close to the ball are marked by the nearest slot-holder.
+	NearBall float64 `json:"near_ball"` // nb
+	// MarkGoalSide (m): a marker stands this far goal-side of his man.
+	MarkGoalSide float64 `json:"mark_goal_side"` // mg
 }
 
 // DefaultConfig returns the go4 defaults (identical to the former package
@@ -216,7 +282,7 @@ func DefaultConfig() EngineConfig {
 		Modules: ModuleConfig{
 			M1Defence: true, M2Decision: true, M3Steering: true, M4Shape: true,
 			M5Collective: true, M6Challenge: true, M8Planner: false, M9Restart: true,
-			M10Structure: true,
+			M10Structure: true, TeamShape: false,
 		},
 		M2: M2Config{
 			ControlRadius:     1.5,
@@ -254,7 +320,13 @@ func DefaultConfig() EngineConfig {
 		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
-		M3:    M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
+		M3: M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
+		TeamShape: TeamShapeConfig{RunQuota: 2, OverlapQuota: 1, BoxQuota: 2, PressQuota: 1,
+			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
+			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
+			DangerDepth: 40, MarkZone: 30, ShiftSpeed: 2.4, WalkZone: 3,
+			NativeDefence: true, KeepTime: 0.75, EngageDepth: 35, CoverGap: 6, MarkRadius: 12, RunnerSpeed: 3.5, PressOption: 20, DefRunSpeed: 4.5, NearBall: 25, MarkGoalSide: 2,
+			TrotSpeed: 2.6, AnchorTime: 3, DepthDev: 5},
 		Press: PressConfig{Depth: 17.5, Window: 6.0, ForwardGap: 99, MidGap: 99, Effort: 1.0},
 		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
 		M8:    M8Config{Confidence: feM8Confidence, ExpandCarry: true},
@@ -307,6 +379,68 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M3.CatchUpShare = f
 			case "cx":
 				c.M3.CatchUpDistance = f
+			case "rq":
+				c.TeamShape.RunQuota = int(f)
+			case "oq":
+				c.TeamShape.OverlapQuota = int(f)
+			case "bq":
+				c.TeamShape.BoxQuota = int(f)
+			case "xq":
+				c.TeamShape.PressQuota = int(f)
+			case "sm":
+				c.TeamShape.MinSpacing = f
+			case "sd":
+				c.TeamShape.SupportDev = f
+			case "vd":
+				c.TeamShape.CoverDev = f
+			case "dd":
+				c.TeamShape.DutyDev = f
+			case "ws":
+				c.TeamShape.WalkSpeed = f
+			case "js":
+				c.TeamShape.JogSpeed = f
+			case "ru":
+				c.TeamShape.RunSpeed = f
+			case "jd":
+				c.TeamShape.JogDistance = f
+			case "rd":
+				c.TeamShape.RunDistance = f
+			case "tt":
+				c.TeamShape.TrotSpeed = f
+			case "ct":
+				c.TeamShape.CloseTime = f
+			case "at":
+				c.TeamShape.AnchorTime = f
+			case "pd":
+				c.TeamShape.DepthDev = f
+			case "dg":
+				c.TeamShape.DangerDepth = f
+			case "mz":
+				c.TeamShape.MarkZone = f
+			case "sh":
+				c.TeamShape.ShiftSpeed = f
+			case "wz":
+				c.TeamShape.WalkZone = f
+			case "nv":
+				c.TeamShape.NativeDefence = f != 0
+			case "kt":
+				c.TeamShape.KeepTime = f
+			case "ed":
+				c.TeamShape.EngageDepth = f
+			case "cg":
+				c.TeamShape.CoverGap = f
+			case "mr":
+				c.TeamShape.MarkRadius = f
+			case "rv":
+				c.TeamShape.RunnerSpeed = f
+			case "po":
+				c.TeamShape.PressOption = f
+			case "dv":
+				c.TeamShape.DefRunSpeed = f
+			case "nb":
+				c.TeamShape.NearBall = f
+			case "mg":
+				c.TeamShape.MarkGoalSide = f
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":
@@ -344,6 +478,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 	for _, m := range strings.Split(on, ",") {
 		if strings.TrimSpace(strings.ToUpper(m)) == "M8" {
 			c.Modules.M8Planner = true
+		} else if strings.TrimSpace(strings.ToUpper(m)) == "TS" {
+			c.Modules.TeamShape = true
 		} else if strings.TrimSpace(m) != "" {
 			ignored = append(ignored, "ON:"+m)
 		}
@@ -369,6 +505,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			md.M9Restart = false
 		case "M10":
 			md.M10Structure = false
+		case "TS":
+			md.TeamShape = false
 		case "ALL":
 			md.M1Defence, md.M2Decision, md.M3Steering, md.M4Shape, md.M5Collective, md.M6Challenge = false, false, false, false, false, false
 			md.M9Restart = false

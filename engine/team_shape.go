@@ -32,6 +32,21 @@ type teamShapeState struct {
 	since float64 // when it gained the ball
 	// assign[side][k]: the slot (1..10) outfield player k holds; 0 = not yet assigned.
 	assign [2][11]int
+	// last slots computed by the composer (Modules.TeamShape): the replay
+	// diagnostic reads them instead of recomputing (recomputing would move the
+	// assignment's hysteresis and change the match).
+	last   [][2]float64
+	lastOK []bool
+	// the native first defender (slot index + 1; 0 = none)
+	fd int
+	// smoothed ball the shape follows (Modules.TeamShape)
+	anchor     [2]float64
+	anchorSet  bool
+	anchorTime float64
+	// previous composed targets (feed-forward speed)
+	prev     [][2]float64
+	prevSet  bool
+	prevTime float64
 }
 
 // teamShapeKeep (m²): a player keeps his slot unless a new assignment saves more than this
@@ -110,9 +125,26 @@ func (e *MatchEngine) teamShapeSlots() (slots [][2]float64, ok []bool) {
 	if st.set {
 		blend = hClamp((now-st.since-teamShapeTransition)/teamShapeEase+1, 0, 1)
 	}
-	bx, by := e.ball.Position.X*Pitch_LENGTH_METRES, e.ball.Position.Y*Pitch_WIDTH_METRES
+	ballX, ballY := e.ball.Position.X*Pitch_LENGTH_METRES, e.ball.Position.Y*Pitch_WIDTH_METRES
+	// the defending side's shape follows a smoothed ball (time constant
+	// TeamShape.AnchorTime): the block re-shapes when the ball has moved, not at every
+	// touch; the side in possession follows the ball itself (it moves up with it)
+	if tau := e.cfg.TeamShape.AnchorTime; tau > 0 && e.cfg.Modules.TeamShape {
+		if !st.anchorSet {
+			st.anchor, st.anchorSet = [2]float64{ballX, ballY}, true
+		} else if dt := now - st.anchorTime; dt > 0 {
+			k := 1 - math.Exp(-dt/tau)
+			st.anchor[0] += (ballX - st.anchor[0]) * k
+			st.anchor[1] += (ballY - st.anchor[1]) * k
+		}
+		st.anchorTime = now
+	}
 	for _, side := range [2]bool{true, false} {
 		fr := e.teamShapeSide(side)
+		bx, by := ballX, ballY
+		if st.anchorSet && e.cfg.Modules.TeamShape && !(st.set && st.home == side) {
+			bx, by = st.anchor[0], st.anchor[1]
+		}
 		ub, wb := fr.toFrame(bx, by)
 		phase := 1 // defending
 		if st.set && st.home == side {

@@ -822,6 +822,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 	if e.cfg.Modules.M1Defence {
 		e.feM1Assign()
 	}
+	// F2: the Team Shape Controller + composer own live-play targets.
+	if e.cfg.Modules.TeamShape && e.state == MatchState_PLAYING && e.setPiecePhaseRemaining <= 0 {
+		e.teamShapeCompose()
+	} else {
+		for i := range e.players {
+			e.players[i].ComposeSpeed = 0
+		}
+	}
 }
 
 func (e *MatchEngine) cutsInside(player *MatchPlayer) bool {

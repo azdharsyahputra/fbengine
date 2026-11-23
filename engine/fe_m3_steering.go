@@ -142,7 +142,16 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 			feM3ClassOf(player.Intent) == feM3Shape &&
 			(role == PlayerRole_CB || role == PlayerRole_LB || role == PlayerRole_RB)
 
-		e.feM3Follow(player, s, raw, backLine, dt)
+		if player.ComposeSpeed > 0 && e.state == MatchState_PLAYING {
+			// F2: a composer target is already smooth (slots follow the ball as a
+			// function, offsets are capped): M3 executes it directly, without the
+			// shape filter, deadband and reaction delays that made players trail
+			// a moving slot by ~10 m.
+			player.MovementTarget = raw
+			s.filtered, s.filterReady, s.pending, s.moving, s.idle = raw, true, false, true, Vector2F{}
+		} else {
+			e.feM3Follow(player, s, raw, backLine, dt)
+		}
 		s.trackTarget(player.MovementTarget, dt)
 		idle := e.feM3IdleOffset(player, s, backLine)
 		steer := player.MovementTarget
@@ -249,6 +258,14 @@ func (e *MatchEngine) feM3IntegrateMovements(slots []uint8, dt float64) {
 				e.shoutWorkRate(player.IsHomeTeam))*share)
 		if !player.IsGoalkeeper && !backLine && !m1Task && !(running && e.cfg.M3.CatchUpRun) {
 			speedCap = math.Min(speedCap, s.feM3AdjustCap(player))
+		}
+		// F2: a slot or offset target moves at the composer's speed class (M3 only
+		// executes; the intent-based shares above do not apply).
+		if player.ComposeSpeed > 0 && !player.IsGoalkeeper && e.state == MatchState_PLAYING {
+			speedCap = math.Min(topSpeed, e.teamShapeSpeed(player.ComposeSpeed))
+			if player.ComposeSpeed != teamShapeTrot {
+				speedCap = math.Min(speedCap, math.Max(player.ComposeWant, e.cfg.TeamShape.WalkSpeed))
+			}
 		}
 		if s.idling {
 			speedCap = math.Min(speedCap, s.idleSpeed)

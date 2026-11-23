@@ -169,6 +169,12 @@ type MatchPlayer struct {
 	// is chased urgently.
 	TacticalTarget Vector2F
 	UrgentMovement bool
+	// ComposeSpeed: the composer's speed class + 1 for a slot or offset target
+	// (team_shape_compose.go); 0 = the intent-based M3 effort decides.
+	ComposeSpeed uint8
+	// ComposeWant (m/s): the composer's wanted speed for that target (feed-forward
+	// target speed + closing the gap); M3 caps at it within the class.
+	ComposeWant float64
 
 	FacingAngle float64
 	TargetAngle float64

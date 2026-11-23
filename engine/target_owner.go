@@ -18,10 +18,11 @@ const (
 	TargetOwner_M9                // FE M9 restart walk (legal restart targets, half-time walk)
 	TargetOwner_M10               // our M10 structure / getting open
 	TargetOwner_LOOSE             // Phase 2 loose-ball resolver (loose_ball.go)
+	TargetOwner_TSC               // Team Shape Controller slot (team_shape.go)
 	TargetOwner_COUNT
 )
 
-var targetOwnerNames = [TargetOwner_COUNT]string{"none", "P12", "M1", "M4", "M5", "M9", "M10", "LOOSE"}
+var targetOwnerNames = [TargetOwner_COUNT]string{"none", "P12", "M1", "M4", "M5", "M9", "M10", "LOOSE", "TSC"}
 
 func (o TargetOwner) String() string {
 	if o < TargetOwner_COUNT {
@@ -89,6 +90,8 @@ const (
 	TargetReason_RESTART
 	TargetReason_HALF_TIME_WALK
 	TargetReason_SHOOTOUT
+	// Team Shape Controller slot (composer tier 4).
+	TargetReason_SLOT
 	TargetReason_COUNT
 )
 
@@ -100,7 +103,7 @@ var targetReasonNames = [TargetReason_COUNT]string{"none",
 	"receive", "flight-support", "loose-claim", "loose-cover", "loose-delay", "flight-mark",
 	"flight-recover", "flight-hold", "transition-run", "transition-support", "recover", "aerial-hold",
 	"gk", "m1-shape", "m1-first-defender", "m1-cover", "m1-screen", "m1-contain", "m1-protect-depth",
-	"m1-recover-shape", "m1-marker", "restart", "half-time-walk", "shootout"}
+	"m1-recover-shape", "m1-marker", "restart", "half-time-walk", "shootout", "slot"}
 
 func (r TargetReason) String() string {
 	if r < TargetReason_COUNT {

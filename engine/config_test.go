@@ -20,7 +20,8 @@ import (
 // 9382afd0… go14: m1.rest_gap 9, m1.full_back_cross -2.
 // cc92ffeb… go15: m3.catch_up_run, m10 full-back trail 2 / weak 12 / start -20, overlap_lead 6.
 // 8872a1c4… go16: m10.possession_step 1.6, possession_step_max 30.
-const goldenDefaultHash = "8872a1c4ed9d577a3d2a83eca74ad338333f41e498df117ca3256dd448468af4"
+// 8bbfec1d… F2 checkpoint: modules.team_shape (off) + team_shape section; go16 play unchanged.
+const goldenDefaultHash = "8bbfec1db9193b803fd48d1f514fa3ecddd428cfe065f65c103089f59ef98b84"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

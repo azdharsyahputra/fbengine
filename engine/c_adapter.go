@@ -143,7 +143,16 @@ func RunReplayWith(home, away *Lineup, homeName, awayName string, seed uint32, t
 			out.capture(e, prev, cur, a)
 			out.Live = append(out.Live, live)
 			if e.diag.Slots {
-				slots, ok := e.teamShapeSlots()
+				var slots [][2]float64
+				var ok []bool
+				if e.cfg.Modules.TeamShape {
+					slots, ok = e.teamShape.last, e.teamShape.lastOK
+				} else {
+					slots, ok = e.teamShapeSlots()
+				}
+				if len(slots) != len(e.players) {
+					slots, ok = make([][2]float64, len(e.players)), make([]bool, len(e.players))
+				}
 				for i := range slots {
 					if !ok[i] {
 						out.Slots = append(out.Slots, -1, -1)
