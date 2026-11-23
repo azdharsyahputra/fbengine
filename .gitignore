@@ -1,0 +1,15 @@
+# Player data (efem CSV) and reference engines (Player12, FootballEngine) live
+# outside this repo and must never be committed.
+*.csv
+referensi/
+refdata/
+
+# Build outputs and match artefacts (replays contain player names)
+/audit/match
+/audit/sens/
+/match
+replay*.js
+r_*.js
+*.out
+*.err
+.DS_Store
