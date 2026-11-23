@@ -46,3 +46,27 @@ Probe `AUDIT offside standing` / `AUDIT offside passes` (read-only, output ident
 2. **Kawalan lengket.** Di layar, bek menempel 1–2 m di penyerang (Kerkez–Doku, Gvardiol/Dias–Isak); di Metrica jaraknya ~7 m. Scorecard: bek <3 m dari penyerang 2.7 vs 1.5, jarak penyerang→bek 5.3 vs 7.4. Ini juga memberi banyak kontak/tekel.
 3. **Garis belakang terlalu tinggi saat bertahan di tengah:** 41 m vs 32 m. Bola di belakang garis jadi sering.
 4. **Pergantian karena cedera di babak 1:** 1.2 per laga (go16 0.8). Sudah ada sebelum TS.
+
+## Ronde 2: kawalan lengket
+
+**Ukur akar** (`viz/markprof.js`, bertahan settled): jarak bek terdekat ke tiap penyerang, per jarak penyerang ke bola.
+
+| Jarak ke bola | Metrica med / % <3 m | F5 slide gate | go16 |
+|---|---|---|---|
+| 0–8 m | 4.7 / 29% | 3.6 / 41% | 4.8 / 29% |
+| 8–15 m | 5.2 / 23% | 4.2 / 32% | 5.9 / 19% |
+| 15–25 m | 6.0 / 18% | 4.3 / 32% | 6.8 / 14% |
+| 25–35 m | 6.4 / 18% | 4.9 / 27% | 7.7 / 12% |
+
+Di bola asli jarak kawal melebar makin jauh dari bola. Marker native selalu 2 m goal-side untuk semua penyerang dalam 25 m (40 m saat press).
+
+**Perubahan:** `TeamShape.MarkSlope` (kunci `ml`, default 0.15). Di luar zona bahaya, jarak marker = 2 m + 0.15 × jarak penyerang ke bola. Zona bahaya tetap 2 m.
+
+| 10 seed | Skor | Lolos | 15–25 m % <3 m | 25–35 m % <3 m | Gol | Foul/tim | Offside/tim |
+|---|---|---|---|---|---|---|---|
+| slide gate | 0.894 | 94/138 | 32% | 27% | 3.1 | 19.6 | 11.5 |
+| `ml=0.15` (default baru) | **0.816** | 96/138 | 22% | 17% | 2.3 | 21.1 | 9.2 |
+
+Penjaga bentuk tidak memburuk (own3in5 36, tepi bawah). Gol turun 3.1 → 2.3: diawasi, masih dalam noise 10 seed (~0.55 SD).
+
+**Sisa:** dekat bola (0–15 m) masih terlalu rapat (40% vs 29%): first defender, cover, dan presser kedua, bukan marker.

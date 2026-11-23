@@ -444,7 +444,11 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 		sort.Slice(atts, func(a, b int) bool { return atts[a].d < atts[b].d || atts[a].d == atts[b].d && atts[a].i < atts[b].i })
 		for _, a := range atts {
 			op := pm(&e.players[a.i])
-			mark := toward(op, goal, ts.MarkGoalSide)
+			gap := ts.MarkGoalSide
+			if !a.danger {
+				gap += ts.MarkSlope * math.Hypot(op[0]-bx, op[1]-by)
+			}
+			mark := toward(op, goal, gap)
 			au, _ := fr.toFrame(op[0], op[1])
 			best, bd := -1, ts.MarkRadius
 			defenders(func(i int, p *MatchPlayer) bool {
