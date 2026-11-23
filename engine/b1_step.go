@@ -793,19 +793,11 @@ func (e *MatchEngine) updateMovement(dt float64) {
 }
 
 func (e *MatchEngine) estimatedArrivalTime(candidate *MatchPlayer, pressurePosition Vector2F, carrier *MatchPlayer) float64 {
-	toTarget := toMetres(Vector2F{pressurePosition.X - candidate.Position.X,
-		pressurePosition.Y - candidate.Position.Y})
-	targetDistance := length(toTarget)
-	if targetDistance <= EPSILON {
-		return 0.0
-	}
-	pursuitDirection := Vector2F{toTarget.X / targetDistance, toTarget.Y / targetDistance}
-	velocityTowardTarget := math.Max(0.0, candidate.Velocity.X*pursuitDirection.X+
-		candidate.Velocity.Y*pursuitDirection.Y)
-	pursuitSpeed := math.Max(e.currentTopSpeed(candidate)+
-		velocityTowardTarget*Player_CURRENT_VELOCITY_PURSUIT_WEIGHT,
-		Player_MINIMUM_PURSUIT_SPEED)
-	arrivalTime := math.Max(0.0, targetDistance/pursuitSpeed-e.pressEagerness(candidate, carrier))
+	// Phase 2 (B1): the shared body model (kinematics.go) is the physical
+	// part; Player12's press eagerness and presser continuity stay as the
+	// tactical bias on top of it.
+	arrivalTime := math.Max(0.0, e.bodyTimeTo(candidate, feM1ToM(pressurePosition), 1.0)-
+		e.pressEagerness(candidate, carrier))
 	if candidate.Intent == PlayerIntent_PRESS_BALL || candidate.Intent == PlayerIntent_CLAIM_LOOSE_BALL {
 		arrivalTime = math.Max(0.0, arrivalTime-Shape_PRESSER_CONTINUITY_SECONDS)
 	}

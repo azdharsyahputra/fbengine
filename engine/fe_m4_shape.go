@@ -34,8 +34,6 @@ const (
 	feM4DragK          = 0.05304    // ρπr²/(2m)
 	feM4MaxSteps       = 50
 	feM4ControlRadius  = 2.5
-	feM4BodyAcc        = 3.2 // Acceleration 4.0 · Smoothing 0.8
-	feM4BodyTop        = 8.5 // SprintSpeed
 	feM4MovingBallMins = 0.5 // m/s: a slower free ball is anchored where it is
 
 	// FieldEvaluator (BalanceConfig.fs:1258-1268).
@@ -102,15 +100,6 @@ func feM4NextGroundSpeed(v float64) float64 {
 	return math.Max(0.0, v-(feM4RollDecel+feM4DragK*cd*v*v)*feM4Dt)
 }
 
-// feM4BodyReach is FE reachableDistance (plan §0.3 P4).
-func feM4BodyReach(t float64) float64 {
-	ramp := feM4BodyTop / feM4BodyAcc
-	if t <= ramp {
-		return 0.5 * feM4BodyAcc * t * t
-	}
-	return feM4BodyTop*t - feM4BodyTop*ramp*0.5
-}
-
 // feM4ShapeAnchor is the point the blocks shift around (plan M4(d)): the
 // carrier while the ball is held, otherwise ballInertiaPoint(ball, BallStep)
 // with BallStep = min stepsToReach over every player on the pitch.
@@ -149,7 +138,16 @@ func (e *MatchEngine) feM4ShapeAnchor(carrier *MatchPlayer, pressure Vector2F) V
 		}
 		pos := feM1ToM(pl.Position)
 		for n := 0; n < ballStep; n++ {
-			if feM1Dist(pos, st.ballPts[n]) <= feM4ControlRadius+feM4BodyReach(float64(n)*feM4Dt) {
+			// Phase 2 (B1): the shared body model (each player's own speed,
+			// acceleration and current velocity) instead of FE's uniform
+			// 8.5 m/s from a standstill.
+			d := feM1Dist(pos, st.ballPts[n])
+			if d <= feM4ControlRadius {
+				ballStep = n
+				break
+			}
+			dx, dy := (st.ballPts[n].X-pos.X)/d, (st.ballPts[n].Y-pos.Y)/d
+			if d <= feM4ControlRadius+e.bodyReach(pl, float64(n)*feM4Dt, dx, dy) {
 				ballStep = n
 				break
 			}
