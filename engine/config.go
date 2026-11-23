@@ -87,7 +87,8 @@ type M1Config struct {
 	// the press point (FE ApproachOffset 0.75 m), i.e. on the ball.
 	ContainDistance float64 `json:"contain_distance"` // cd
 	// ContainWindow: outside the engage distance a Contain is sent only at a
-	// carrier someone reaches within this many seconds (FE local window 2 s).
+	// carrier someone reaches within this many seconds (FE local window 2 s,
+	// go4-go12; go13 4 s: carriers in midfield space get a defender out).
 	ContainWindow float64 `json:"contain_window"` // cw
 	// RecoverClearance: a bypassed player's recovery run keeps this many
 	// metres off the ball's line (0: straight at his spot, go9).
@@ -205,7 +206,7 @@ func DefaultConfig() EngineConfig {
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
 		// 10.6→8.4, loose ≥5 11.6→9.0, fouls 24→21 per side.
-		M1: M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow,
+		M1: M1Config{ContainDistance: 2.0, ContainWindow: 4.0,
 			// Phase 2 D (go10): a bypassed forward trots back (effort 0, ~2 m/s)
 			// and sprints only with the ball within 25 m of his goal (go9: 0.6
 			// and 40 m). 20 seeds: chase≥3 10.1 → 5.2 % (real 5.8).

@@ -2,6 +2,39 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go13: carriers left to dribble in midfield (2026-11-23)
+
+From the go11 critique, problem 2.
+
+- **Cause (new probe lines `AUDIT long-carry …`):**
+  - In a ≥25 m carry the carrier had no defender within 5 m for 86% of the spell.
+  - In 62% of its steps no M1 engager was assigned at all.
+  - The midfield Contain was sent only at a carrier someone could reach within 2 s (FE local window). A winger in space was out of reach, so the block just held.
+  - M2 then chose to carry at every decision (7–8 per spell). Carrying beat the best pass by ~0.02 goal value, so the hold limit (8 s) ended many spells.
+- **Change:** `m1.contain_window` 2 → 4 s. A carrier in midfield space gets a goal-side defender out. He still jockeys at `m1.contain_distance`, and M6 decides the tackle.
+- **Tried and dropped:**
+  - Jockey time (Contain closes after N s): carries 29–37 per match.
+  - Capped back-pedal speed: 31–38 per match.
+  - A separate, larger midfield contain distance: fewer fouls, but less midfield pressure.
+- **Result (10 seeds vs go12; probe carries ≥25 m, cek for the rest):**
+
+  | | go12 | go13 | Real |
+  |---|---|---|---|
+  | Carries ≥25 m (probe) | 34 | 9.4 | — |
+  | Carries ≥25 m (replay holder test, 3 seeds) | 28–34 | 4–6 | 0–2 |
+  | Carries ≥15 m (same) | 55–77 | 24–25 | 3–12 |
+  | Midfield ≥1 defender within 5 m | 31% | 47% | 47–54% |
+  | Receptions under pressure | 19.5% | 21% | 26–37% |
+  | Backward passes, middle third | 22% | 25% | 24–27% |
+  | Backward passes, final third | 36% | 35% | 27–34% |
+  | chase≥3 | 4.7 | 5.9 | 5.8 |
+  | Engine ping-pong | 5.6 | 6.5 | ~8 (cek) |
+  | cek ping-pong | 12.3 | 17.0 | 8.3 |
+  | Fouls per side | 16.4 | 18.4 | ~10 |
+
+- **Cost:** more midfield duels. The cek ping-pong counts duel contact as a flip, so it rises. Real possession flips (engine truth) stay below the real figure. Fouls rise by ~2 per side.
+- **Reproduce go12:** `FMENGINE_M1=cw=2`.
+
 ## go12: midfield hole (2026-11-23)
 
 From watching go11; see the notes file `kritik-coach-go11.md`.

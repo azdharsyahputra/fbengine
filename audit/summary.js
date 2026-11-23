@@ -28,6 +28,7 @@ for (const f of files) {
   put('kept', one(t, /lanjut tim sendiri (\d+)%/));
   put('bwFinal', one(t, /1\/3 akhir: n\d+ maju \d+% mundur (\d+)%/));
   put('bwMid', one(t, /1\/3 tengah: n\d+ maju \d+% mundur (\d+)%/));
+  put('carry25', one(a, /AUDIT carries >=25 m \(displacement\): (\d+) of/));
   put('buEng', one(a, /M1 engager assigned (\d+)%/));
   put('pLoose5', one(a, /truly loose: runners-at-ball median \d+ p90 \d+ ≥5 ([\d.]+)%/));
   put('pPress2', one(a, /defenders <5 m median \d+ ≥2 (\d+)%/));

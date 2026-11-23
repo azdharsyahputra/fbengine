@@ -120,6 +120,12 @@ go9, 10 seeds, front-of-box zone:
   - Lower presser effort (`press.effort`): no effect, because M3 drives PRESS at full effort.
 - **Trade-off found:** any stronger press (wider zone, step-up) raises chase≥3. Real teams get pressure from already-close positions, not long runs.
 
+### C4: midfield Contain (go13)
+
+- Outside the near-goal engagement and the press zone, M1 sends a goal-side Contain at any carrier someone reaches within `m1.contain_window`, now 4 s (was FE's 2 s).
+- Before go13, a carrier in midfield space had no engager for 62% of a long carry, and M2 kept carrying (7–8 carry choices per spell).
+- Probe: `AUDIT long-carry decisions` (space share, decisions, carry-minus-best-pass margin) and `AUDIT long-carry engagement` (engager within 5 m / farther / none).
+
 ## Ball behaviour (item D)
 
 - **Chase anatomy (probe, cek definition).** 44–54% of the defenders in a ≥3-runner moment were *bypassed* players on M1 recover-shape, mostly forwards (ST/W/CAM). They ran back toward their own goal through the ball's direction at 5–7 m/s (effort 0.6), or sprinted inside 40 m of goal. Real defending strikers almost never run at the ball above 3 m/s (0.04 per instant).

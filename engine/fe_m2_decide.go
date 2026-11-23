@@ -274,6 +274,7 @@ func (e *MatchEngine) feM2Decide(carrier *MatchPlayer) {
 	e.lastScenarioDecision.ShieldUtility = shieldValue
 	e.lastScenarioDecision.Action = ScenarioAction_NONE
 
+	e.auditCarryDecision(carrier, choice.kind == feM2KindCarry, carryValue, passValue)
 	switch choice.kind {
 	case feM2KindShot:
 		e.lastScenarioDecision.Action = ScenarioAction_SHOT

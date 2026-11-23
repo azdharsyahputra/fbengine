@@ -38,6 +38,9 @@ type auditState struct {
 		history    []auditChange
 		pingpong   map[string]int
 	}
+	// Carry spells (same carrier continuously): long ones (>=25 m) and how
+	// they were defended.
+	carry auditCarryState
 	// Pivot (CDM/CM) of the side in possession: reason and depth behind the ball.
 	pivot map[string][]float64
 	// Chase anatomy (cek chase.js definition: defenders >3 m/s, >5 m away,
@@ -153,6 +156,7 @@ func (e *MatchEngine) auditStep() {
 	switch {
 	case carrier != nil:
 		a.held++
+		e.auditCarry(carrier)
 		e.auditPivot(carrier)
 		e.auditBuildUp(carrier)
 		e.auditChase(carrier, ball)
@@ -325,6 +329,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditBuildUpReport(w)
 	e.auditChaseReport(w)
 	e.auditPivotReport(w)
+	e.auditCarryReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -709,4 +714,173 @@ func (e *MatchEngine) auditPivotReport(w io.Writer) {
 		fmt.Fprintf(w, " %s %d%% %.0fm |", x.k, 100*x.n/tot[z], x.med)
 	}
 	fmt.Fprintln(w)
+}
+
+// auditCarry tracks one carrier's spell: path length, nearest defender, and
+// whether M1 assigned an engager (FirstDefender/Contain) or M6 prepared a
+// challenge on him during it.
+func (e *MatchEngine) auditCarry(carrier *MatchPlayer) {
+	c := &e.audit.carry
+	if c.longZone == nil {
+		c.longZone, c.longRole = map[string]int{}, map[string]int{}
+	}
+	pos := feM1ToM(carrier.Position)
+	if c.who != carrier {
+		e.auditCarryEnd()
+		dir := feM1Dir(carrier.IsHomeTeam)
+		z := "final"
+		switch x := pos.X * dir; {
+		case x < -feM1HalfLength/3:
+			z = "own"
+		case x < feM1HalfLength/3:
+			z = "mid"
+		}
+		c.who, c.path, c.engaged, c.challenged = nil, 0, false, false
+		c.steps, c.space, c.decisions, c.carries, c.margin, c.noPass = 0, 0, 0, 0, 0, 0
+		c.eng, c.engFar = [3]int{}, c.engFar[:0]
+		c.who, c.start, c.last, c.minNear, c.startZone = carrier, pos, pos, math.Inf(1), z
+	}
+	c.path += feM1Dist(c.last, pos)
+	c.last = pos
+	def := !carrier.IsHomeTeam
+	side := &e.feM1Of().sides[hBoolIndex(def)]
+	m6 := e.feM6()
+	near, engD := math.Inf(1), math.Inf(1)
+	for i := range e.players {
+		q := &e.players[i]
+		if !active(q) || q.IsHomeTeam != def || q.IsGoalkeeper {
+			continue
+		}
+		near = math.Min(near, feM1Dist(feM1ToM(q.Position), pos))
+		if side.owns && i < len(side.tasks) {
+			if r := side.tasks[i].role; r == feM1RoleFirstDefender || r == feM1RoleContain {
+				c.engaged = true
+				engD = math.Min(engD, feM1Dist(feM1ToM(q.Position), pos))
+			}
+		}
+		if i < len(m6.challenges) && m6.challenges[i].active {
+			c.challenged = true
+		}
+	}
+	c.minNear = math.Min(c.minNear, near)
+	switch {
+	case engD <= 5:
+		c.eng[0]++
+	case !math.IsInf(engD, 1):
+		c.eng[1]++
+		c.engFar = append(c.engFar, engD)
+	default:
+		c.eng[2]++
+	}
+	c.steps++
+	if near > 5 {
+		c.space++
+	}
+}
+
+// auditCarryState: carry spells (same carrier continuously), long ones
+// (>=25 m displacement) and how they were defended and decided.
+type auditCarryState struct {
+	who                    *MatchPlayer
+	start, last            feM1Vec
+	path, minNear          float64
+	engaged, challenged    bool
+	startZone              string
+	steps, space           int     // spell steps / steps with no defender within 5 m
+	decisions, carries     int     // M2 decisions in the spell / carry choices
+	margin                 float64 // sum of (carry value - best pass value) on carry choices
+	noPass                 int     // carry choices with no pass option at all
+	eng                    [3]int  // spell steps: engager within 5 m / engager farther / no engager
+	engFar                 []float64
+	long, total            int
+	longEngaged, longChall int
+	longNear, longSpace    []float64
+	longDecisions          []float64
+	longMargin             []float64
+	longNoPass, longCarry  int
+	longEng                [3]int
+	longEngFar             []float64
+	longZone, longRole     map[string]int
+}
+
+// auditCarryDecision records one M2 choice of the current carrier.
+func (e *MatchEngine) auditCarryDecision(carrier *MatchPlayer, carry bool, carryValue, passValue float64) {
+	if !e.diag.Audit {
+		return
+	}
+	c := &e.audit.carry
+	if c.who != carrier {
+		return
+	}
+	c.decisions++
+	if carry {
+		c.carries++
+		if math.IsInf(passValue, -1) {
+			c.noPass++
+		} else {
+			c.margin += carryValue - passValue
+		}
+	}
+}
+
+func (e *MatchEngine) auditCarryEnd() {
+	c := &e.audit.carry
+	if c.who == nil {
+		return
+	}
+	c.total++
+	if feM1Dist(c.start, c.last) >= 25 {
+		c.long++
+		if c.engaged {
+			c.longEngaged++
+		}
+		if c.challenged {
+			c.longChall++
+		}
+		c.longNear = append(c.longNear, c.minNear)
+		c.longSpace = append(c.longSpace, float64(c.space)/math.Max(1, float64(c.steps)))
+		c.longDecisions = append(c.longDecisions, float64(c.decisions))
+		if c.carries > c.noPass {
+			c.longMargin = append(c.longMargin, c.margin/float64(c.carries-c.noPass))
+		}
+		c.longNoPass += c.noPass
+		for k := range c.eng {
+			c.longEng[k] += c.eng[k]
+		}
+		c.longEngFar = append(c.longEngFar, c.engFar...)
+		c.longCarry += c.carries
+		c.longZone[c.startZone]++
+		if c.who.Player != nil {
+			c.longRole[roleShortKeys[c.who.Player.GetRole()]]++
+		}
+	}
+}
+
+func (e *MatchEngine) auditCarryReport(w io.Writer) {
+	e.auditCarryEnd()
+	c := &e.audit.carry
+	if c.total == 0 {
+		return
+	}
+	near := append([]float64(nil), c.longNear...)
+	sort.Float64s(near)
+	m := math.NaN()
+	if len(near) > 0 {
+		m = near[len(near)/2]
+	}
+	med := func(v []float64) float64 {
+		if len(v) == 0 {
+			return math.NaN()
+		}
+		v = append([]float64(nil), v...)
+		sort.Float64s(v)
+		return v[len(v)/2]
+	}
+	fmt.Fprintf(w, "AUDIT carries >=25 m (displacement): %d of %d spells | M1 engager assigned %d | M6 challenge prepared %d | nearest defender during it median %.1f m | start zone %v | role %v\n",
+		c.long, c.total, c.longEngaged, c.longChall, m, c.longZone, c.longRole)
+	fmt.Fprintf(w, "AUDIT long-carry decisions: share of spell with no defender within 5 m median %.2f | M2 decisions per spell median %.0f | carry choices %d (no pass option %d) | carry-minus-best-pass margin median %.5f\n",
+		med(c.longSpace), med(c.longDecisions), c.longCarry, c.longNoPass, med(c.longMargin))
+	n := float64(c.longEng[0] + c.longEng[1] + c.longEng[2])
+	fmt.Fprintf(w, "AUDIT long-carry engagement (steps): M1 engager within 5 m %.0f%% | engager farther %.0f%% (median %.1f m) | no engager %.0f%%\n",
+		100*float64(c.longEng[0])/n, 100*float64(c.longEng[1])/n, med(c.longEngFar), 100*float64(c.longEng[2])/n)
 }
