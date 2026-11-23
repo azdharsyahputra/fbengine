@@ -67,6 +67,37 @@ Bagian dari [PLAN-team-shape.md](PLAN-team-shape.md). **Checkpoint:** `Modules.T
    - secepat orangnya ⇒ seimbang.
 4. **Tekanan build-up salah sasaran:** kiper dikejar, DM lawan dibiarkan.
 
+## Putaran 2 (2026-11-24): penjaga yang tersisa (semua 10 seed, dibanding checkpoint `1ba367d`)
+
+**Temuan:**
+- **Tempo:** tim pegang bola terlalu banyak lari.
+  - Lebih dari 4 m/s: 43% waktu (Metrica 12%); jalan 22% (Metrica 47–51%).
+  - Penanda yang bergerak secepat orangnya ikut membawa tim bertahan berlari, sehingga chase naik.
+- **Pelari chase:**
+  - sebagian besar penanda dan pemegang slot yang jauh (>12 m) dari slotnya (transisi);
+  - first defender cuma 6%.
+- **Tekanan build-up lawan (Metrica vs kita):**
+  - DM lawan ditekan 65% vs 19–20%;
+  - CB 24–32% vs 6–10%;
+  - kiper 19–21% vs 57–64%. Kiper sekarang sudah tidak dikejar (5–6%).
+
+**Yang dicoba:**
+
+| Varian | Skor | Lolos | Penjaga | chase | Bola liar | Giring ≥25 | Gol |
+|---|---|---|---|---|---|---|---|
+| Checkpoint | **0.99** | 85 | 4 | 24 | 26 | **28** | **3.1** |
+| + penanda wajib di sisi gawang, batas tempo pegang bola 3 m/s, zona jalan 9 m, first defender jockey | 1.15 | 72 | **6** | 19 | 21 | 37 | 4.9 |
+| sama, tanpa batas tempo pegang bola | 1.09 | 82 | 5 | 20 | 23 | 38 | 4.6 |
+| sama, tanpa jockey | 1.08 | 78 | 5 | 18 | 20 | 36 | 3.7 |
+| sama, tanpa jockey dan tanpa syarat sisi gawang | 0.97 | **88** | 3 | 20 | 19 | 36 | 4.0 |
+
+**Keputusan:** tidak ada varian yang lebih baik dari checkpoint di skor **dan** penjaga **dan** gol sekaligus. Semuanya dibuang, kode tetap di checkpoint.
+
+**Pelajaran:**
+1. Hasil 3 seed terlalu berisik untuk keputusan (gol 2–6, skor ±0.1). Keputusan hanya dari 10 seed.
+2. chase≥3 dan bola liar ≥5 tidak turun di bawah ~18–20 dengan aturan kecepatan apa pun, dan tiap penurunan dibayar gol atau giring panjang.
+3. Sebagian penjaga lama adalah urusan keputusan (M2), bukan bentuk: penguasaan bola (≈10 dtk vs 4.5–7.5) dan bola dijaga (87–89% vs 74–86%). Itu tahap kalibrasi keputusan (F5).
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.
