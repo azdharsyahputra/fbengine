@@ -358,3 +358,32 @@ Tidak ada penjaga per zona yang memburuk; recvOwn membaik. Gol +0.6 diterima, un
 **Berikutnya:**
 1. **Bola terlalu mudah dipertahankan:** kept per zona 98 / 93 / 82 vs asli 74–87 / 83–86 / 62–69, bahkan saat ditekan. Kemungkinan juga menekan gol turun.
 2. Build-up lawan kurang ditekan (recvOwn 13 vs 15–25).
+
+## Ronde 16: kept (bola terlalu mudah dipertahankan)
+
+**Ukur** (`audit/turnover.js`, pergantian pemegang dalam live play):
+
+| Per laga | Metrica (event) | Metrica (replay) | SkillCorner | Engine (default) |
+|---|---|---|---|---|
+| Bola hilang | ~230 | 243 | – | 106 |
+| Porsi pergantian dari semua perpindahan bola | ~27% | 25% | 20% | **7.9%** |
+
+**Kalibrasi umpan** (`FMENGINE_M2TRACE=1`, `PASSOUT`, 3 seed): 1330 umpan per laga, sukses 94.8% (EPL ~82%). Di setiap tingkat keyakinan M2 hasilnya lebih sukses dari keyakinan: 0.5–0.6 → 82%, 0.3–0.4 → 61%. 71% umpan diyakini ≥0.9.
+
+**Uji `ib`** (`M6.InterceptBase`, peluang dasar sentuhan potong 0.62 → 0.8 / 0.95, 20 seed): porsi bola hilang 7.6% → 8.5–8.8%, kept 91 → 90–91. **Gagal**, dibuang. Bek jarang berada dalam jangkauan bola; peluang sentuhan bukan pembatas.
+
+**Bentuk umpan sudah mirip asli:**
+
+| | Metrica | Engine |
+|---|---|---|
+| Umpan per laga | ~860 | 1331 |
+| Jarak median | 13.1–13.9 m | 12.0 m |
+| Maju >10 m | 19–21% | 15% |
+| Mundur | 38–39% | 38% |
+| Sukses | 76–81% | 95% |
+
+Dugaan "terlalu main aman" melemah: geometri umpan sama, tetapi di bola asli ~1 dari 5 hilang, di engine 1 dari 20.
+
+**Tersangka berikutnya:**
+1. Bek tidak pernah berdiri di jalur umpan (ukur okupansi jalur umpan saat ditendang, Metrica vs engine, seperti jalur tembakan).
+2. Umpan dan kontrol pertama terlalu sempurna (Metrica: ~40 BALL LOST tanpa potong + ~38 BALL OUT per laga).
