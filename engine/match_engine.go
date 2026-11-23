@@ -806,7 +806,9 @@ type MatchEngine struct {
 	// Per-match FE M6 state (formerly a global map keyed by engine).
 	feM6Data feM6State
 	// Per-match diagnostics state (never read by the simulation).
-	m2trace  feM2TraceState
+	m2trace feM2TraceState
+	// Spatial service grid (spatial.go), rebuilt every tactical refresh.
+	spatial  spatialState
 	audit    auditState
 	feM5Data feM5State
 	// Medical staff instructions by squad player (see setMedicalFlags).

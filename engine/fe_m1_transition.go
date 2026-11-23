@@ -281,7 +281,7 @@ func (e *MatchEngine) feM1Assess(home bool, side *feM1Side, sliders StrategySlid
 		p := &e.players[slot]
 		if p.IsHomeTeam == home && feM1Outfielder(p) &&
 			p.Stamina >= feM1MinimumPressCondition &&
-			e.feM1ArrivalTime(1.0, p, ball) <= feM1LocalArrivalWindow {
+			e.bodyTimeTo(p, ball, 1.0) <= feM1LocalArrivalWindow {
 			local++
 		}
 	}
@@ -294,7 +294,7 @@ func (e *MatchEngine) feM1Assess(home bool, side *feM1Side, sliders StrategySlid
 		if p.IsHomeTeam == home || !feM1Outfielder(p) {
 			continue
 		}
-		if e.feM1ArrivalTime(1.0, p, ball) <= feM1LocalArrivalWindow {
+		if e.bodyTimeTo(p, ball, 1.0) <= feM1LocalArrivalWindow {
 			opponents++
 		}
 		pm := feM1ToM(p.Position)

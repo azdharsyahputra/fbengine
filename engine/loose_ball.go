@@ -30,8 +30,8 @@ func (e *MatchEngine) looseRaceFor(carrier *MatchPlayer, anchor Vector2F, home, 
 	}
 	r.active = true
 	at := feM1ToM(anchor)
-	th := e.feM1ArrivalTime(1.0, home[0], at)
-	ta := e.feM1ArrivalTime(1.0, away[0], at)
+	th := e.bodyTimeTo(home[0], at, 1.0)
+	ta := e.bodyTimeTo(away[0], at, 1.0)
 	r.late[hBoolIndex(true)] = th-ta > e.cfg.Loose.ContestGap
 	r.late[hBoolIndex(false)] = ta-th > e.cfg.Loose.ContestGap
 	return r

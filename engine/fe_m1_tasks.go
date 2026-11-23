@@ -659,7 +659,7 @@ func (e *MatchEngine) feM1Interceptor(home bool, side *feM1Side) (int, feM1Vec) 
 			if p.IsHomeTeam != home || !feM1Outfielder(p) {
 				continue
 			}
-			if at := e.feM1ArrivalTime(1.0, p, pos); at <= t && at < bestT {
+			if at := e.bodyTimeTo(p, pos, 1.0); at <= t && at < bestT {
 				best, bestT = slot, at
 			}
 		}

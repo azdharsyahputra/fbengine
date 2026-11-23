@@ -85,22 +85,6 @@ func feM2BuildRoll(r *feM2Roll, origin, target feM1Vec, speed, vertical float64,
 	}
 }
 
-// feM2Reach is InterceptTable.reachableDistance for one body: its own top
-// speed and acceleration, starting at its current speed along dir (unit).
-func (e *MatchEngine) feM2Reach(p *MatchPlayer, t, dx, dy float64) float64 {
-	if t <= 0.0 {
-		return 0.0
-	}
-	top := e.currentTopSpeed(p)
-	acc := math.Max(0.5, p.Acceleration*feM1AccelerationShare)
-	u := hClamp(p.Velocity.X*dx+p.Velocity.Y*dy, 0.0, top)
-	ramp := (top - u) / acc
-	if t <= ramp {
-		return u*t + 0.5*acc*t*t
-	}
-	return (top*top-u*u)/(2.0*acc) + top*(t-ramp)
-}
-
 // feM2StepsToReach is InterceptTable.stepsToReach: the first step at which
 // the body, starting after delay seconds, is within radius of the ball while
 // the ball is low enough to be played (ours: a lofted ball can be met on its
@@ -118,7 +102,7 @@ func (e *MatchEngine) feM2StepsToReach(p *MatchPlayer, r *feM2Roll, radius, dela
 		b := r.at(n)
 		dx, dy := b.X-pos.X, b.Y-pos.Y
 		d := math.Hypot(dx, dy)
-		if d <= radius || e.feM2Reach(p, float64(n)*feM2Dt-delay, dx/d, dy/d)+radius >= d {
+		if d <= radius || e.bodyReach(p, float64(n)*feM2Dt-delay, dx/d, dy/d)+radius >= d {
 			return n
 		}
 	}

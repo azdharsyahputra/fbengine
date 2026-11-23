@@ -83,30 +83,6 @@ func feM1Dist(a, b feM1Vec) float64 { return math.Hypot(a.X-b.X, a.Y-b.Y) }
 // feM1Outfielder is FE `TransitionGeometry.outfielder`: active and not keeping goal.
 func feM1Outfielder(p *MatchPlayer) bool { return active(p) && !p.IsGoalkeeper }
 
-// feM1ArrivalTime is FE `arrivalTimeFor` (DefensiveTransition.fs:10-47) with
-// the player's own current top speed (fatigue, sprint reserve, injury) and
-// acceleration in place of FE's flat 8.5 m/s and 3.2 m/s².
-func (e *MatchEngine) feM1ArrivalTime(effort float64, p *MatchPlayer, target feM1Vec) float64 {
-	pos := feM1ToM(p.Position)
-	dx, dy := target.X-pos.X, target.Y-pos.Y
-	norm := math.Hypot(dx, dy)
-	d := math.Max(0.0, norm-feM1FootReach)
-	if d == 0.0 {
-		return 0.0
-	}
-	speed := e.currentTopSpeed(p) * (feM1JogShare + (1.0-feM1JogShare)*effort)
-	if speed <= 0.0 {
-		return math.Inf(1)
-	}
-	acc := math.Max(0.5, p.Acceleration*feM1AccelerationShare)
-	initial := hClamp((p.Velocity.X*dx+p.Velocity.Y*dy)/norm, 0.0, speed)
-	accelDist := (speed*speed - initial*initial) / (2.0 * acc)
-	if d <= accelDist {
-		return (math.Sqrt(initial*initial+2.0*acc*d) - initial) / acc
-	}
-	return (speed-initial)/acc + (d-accelDist)/speed
-}
-
 // feM1ChooseSlot is FE `chooseSlotFor` (DefensiveTransition.fs:101-129): the
 // earliest arriver among the side's outfielders that are not excluded (ties to
 // the lower slot); the previous holder keeps the job while he is within margin.
@@ -119,7 +95,7 @@ func (e *MatchEngine) feM1ChooseSlot(home bool, effort float64, target feM1Vec,
 		if p.IsHomeTeam != home || !feM1Outfielder(p) || excluded(slot) {
 			continue
 		}
-		t := e.feM1ArrivalTime(effort, p, target)
+		t := e.bodyTimeTo(p, target, effort)
 		if t < bestTime {
 			best, bestTime = slot, t
 		}
@@ -127,7 +103,7 @@ func (e *MatchEngine) feM1ChooseSlot(home bool, effort float64, target feM1Vec,
 	if previous >= 0 && previous < len(e.players) {
 		p := &e.players[previous]
 		if p.IsHomeTeam == home && feM1Outfielder(p) && !excluded(previous) {
-			held := e.feM1ArrivalTime(effort, p, target)
+			held := e.bodyTimeTo(p, target, effort)
 			if held <= bestTime+margin {
 				return previous, held
 			}

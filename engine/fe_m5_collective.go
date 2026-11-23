@@ -199,7 +199,7 @@ func (e *MatchEngine) feM5Candidates(home bool, carrier *MatchPlayer, out *[feM5
 					penalty = feM5RolePenalty
 				}
 			}
-			raw := e.feM1ArrivalTime(1.0, p, target)
+			raw := e.bodyTimeTo(p, target, 1.0)
 			t := raw + penalty
 			if best < 0 || t < bestT {
 				best, bestT, bestRaw = slot, t, raw

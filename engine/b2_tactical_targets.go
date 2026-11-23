@@ -64,6 +64,9 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 	// FE M4 (fe_m4_shape.go): the blocks shift around the ball's predicted
 	// control point while it travels (pressers keep the ball itself).
 	shapeAnchor := e.feM4ShapeAnchor(carrier, pressurePosition)
+	// Shared spatial facts for this refresh (spatial.go): read-only, built
+	// lazily by the first consumer.
+	e.spatialInvalidate()
 	// FE M5 (fe_m5_collective.go): open, advance or close attack episodes
 	// before the P12 selections, which leave duty holders alone.
 	e.feM5Update(carrier)
