@@ -110,3 +110,21 @@ Probe `AUDIT near-ball marking` (read-only): dari penyerang dalam 15 m dari bola
 **Gagal:** jarak ke pembawa hampir tidak berubah, zona 0–8 m tidak bergerak, dan pembawa mendapat ruang untuk giring panjang. Knob dibuang.
 
 **Stop-loss untuk zona 0–8 m.** Tiga hipotesis (jarak dasar marker, ketat-dekat-gawang, jarak contain) tidak menggerakkan angka 40% vs 29%. Diterima sebagai gap terdokumentasi. Petunjuk untuk nanti: angka ini lebih dipengaruhi teman pembawa yang terlalu dekat (0.68 vs 0.55 dalam 10 m, sisi menyerang) daripada posisi bek.
+
+## Ronde 5: offside
+
+**Ukur** (default `mt=25`, 10 seed, per laga dua tim): 15.4 umpan offside = 11.2 undian timing (penerima masih onside 0–3 m dari garis) + 4.2 benar-benar lewat garis. Asli ~3.6 per laga.
+
+**Perubahan:** `M2.OffsideTiming` (kunci `ot` di `FMENGINE_M2TUNE`), peluang undian timing Player12 0.7 → **0**.
+
+| 10 seed | Offside/tim | Gol | Tembakan/tim | Skor | Penjaga bentuk |
+|---|---|---|---|---|---|
+| `ot=0.7` (lama) | 7.0 | 3.5 | 21.8 | 0.792 | 2/6 |
+| `ot=0.2` | 4.8 | 5.0 | 21.6 | 0.811 | 2/6 |
+| **`ot=0` (default baru)** | **2.4** | 3.9 | 22.5 | 0.832 | 2/6 |
+
+Offside mendekati EPL (1.8). Gol 3.9 masih di batas +20%. Skor naik 0.04 hanya karena metrik transisi dan penerimaan bola: umpan terobosan yang dulu dimatikan undian sekarang sampai. Bentuk fase settled tidak berubah.
+
+**Catatan reproduksi:** M6.SlideDepth dan M2.OffsideTiming juga berlaku di `FMENGINE_OFF=TS`. go16 persis hanya dari tag `pre-ts-default`.
+
+**Berikutnya:** tembakan (22.5 per tim vs ~13) dan corner (12 vs ~5.3) sekarang outlier statistik terbesar, lalu foul (20 vs 10.5).

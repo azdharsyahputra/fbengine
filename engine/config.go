@@ -81,6 +81,10 @@ type M2Config struct {
 	ProgressFinal float64 `json:"progress_final"`
 	// ToFeet: retry a pass cut off in the lead as a pass to feet.
 	ToFeet bool `json:"to_feet"`
+	// OffsideTiming: chance that a runner level with the line at the pass
+	// (within Passing_OFFSIDE_TIMING_WINDOW, onside) has timed his run early
+	// and is flagged offside; scaled down linearly with his margin. 0.7 = P12.
+	OffsideTiming float64 `json:"offside_timing"` // ot (M2TUNE)
 }
 
 // M1Config is the M1 defensive-task geometry (Phase 2).
@@ -336,6 +340,7 @@ func DefaultConfig() EngineConfig {
 			ProgressMid:       0.0005,
 			ProgressFinal:     0.003, // go11 (go4-go10: 0.0012): backward 27 → 24 % (real 24)
 			ToFeet:            true,
+			OffsideTiming:     0, // F5: P12 0.7 gave ~11 lottery offsides a match (real total ~3.6)
 		},
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
@@ -572,6 +577,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 		switch k {
 		case "cr":
 			m2.ControlRadius = f
+		case "ot":
+			m2.OffsideTiming = f
 		case "ir":
 			m2.InterceptRadius = f
 		case "rd":

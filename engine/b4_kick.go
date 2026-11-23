@@ -48,7 +48,7 @@ func (e *MatchEngine) passBall(passer *MatchPlayer, option *PassOption, forceLof
 		if opponentHalf && gap >= 0.0 &&
 			gap < Passing_OFFSIDE_TIMING_WINDOW {
 			chance :=
-				Passing_OFFSIDE_TIMING_CHANCE *
+				e.cfg.M2.OffsideTiming *
 					(1.0 - gap/Passing_OFFSIDE_TIMING_WINDOW)
 			e.ball.PassWasOffside =
 				(e.hashNoise(receiver.Player.GetId(), 0x5eed)+1.0)*0.5 < chance
