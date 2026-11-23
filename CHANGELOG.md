@@ -2,6 +2,23 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## Phase 2, item F (data validation) (2026-11-23)
+
+No behaviour change.
+
+- **Reproduction:**
+  - Replays record `meta.data.lineup_sha256`: both built squads, every attribute, numbers, labels, bench.
+  - `--reproduce=replay.js [out.js]` replays a match from its meta (clubs, formation, seed, hash-checked EngineConfig).
+  - It first checks the CSV sha256 and the line-up hash. A changed CSV or line-up is an error unless `--allow-data-change`.
+  - It then compares the gameplay payload and prints REPRODUCED or MISMATCH (exit 0 / 1).
+  - `--config=replay.js` also refuses a changed CSV.
+- **Clear errors for:**
+  - non-engine replays (real tracking data);
+  - schema-1 replays;
+  - replays whose config fields have since changed (use the engine version from git).
+- **Tests:** `cmd/match/main_test.go` covers the round trip, a changed CSV, changed line-ups, `--allow-data-change`, tampered frames, an edited config and line-up hash determinism.
+- **Real data:** SkillCorner replays carry the heuristic live/dead mask (`viewer/cek/_deadball.js`, validated 97–99% against engine labels).
+
 ## go11: Phase 2, item E (action decisions) (2026-11-23)
 
 Config `749dbb80…`.
