@@ -54,6 +54,11 @@ type ReplayData struct {
 	ConfigHash string
 	// Audit is the probe summary when Diagnostics.Audit is on.
 	Audit string
+	// Clock is the match clock, run-length: pairs (sample, match second)
+	// at every change of the whole match second (first half from 0, second
+	// from 2700); the clock stops during some stoppages, so it is not the
+	// sample count.
+	Clock []int32
 }
 
 // RunOptions configures one RunReplayWith call.
@@ -88,13 +93,13 @@ func RunReplayWith(home, away *Lineup, homeName, awayName string, seed uint32, t
 		}
 		for i := range e.players {
 			if p := e.players[i].Player; p != nil && p.GetId() == id {
-				return p.GetName()
+				return strings.TrimSpace(p.GetName())
 			}
 		}
 		for _, l := range []*Lineup{home, away} {
 			for _, p := range l.GetReserves() {
 				if p.GetId() == id {
-					return p.GetName()
+					return strings.TrimSpace(p.GetName())
 				}
 			}
 		}
@@ -102,7 +107,7 @@ func RunReplayWith(home, away *Lineup, homeName, awayName string, seed uint32, t
 	}
 	for i := range e.players {
 		if p := e.players[i].Player; p != nil {
-			byID[p.GetId()] = p.GetName()
+			byID[p.GetId()] = strings.TrimSpace(p.GetName())
 		}
 	}
 	const maxSteps = 200000
@@ -122,10 +127,14 @@ func RunReplayWith(home, away *Lineup, homeName, awayName string, seed uint32, t
 		e.auditStep()
 		cur := cSnap(e)
 		live := e.state == MatchState_PLAYING
+		clockSec := int32(math.Floor(e.matchTimeMinutes*60.0 + 1e-6))
 		for t1+1e-9 >= next {
 			a := 1.0
 			if t1 > t0 {
 				a = hClamp((next-t0)/(t1-t0), 0, 1)
+			}
+			if n := len(out.Clock); n == 0 || out.Clock[n-1] != clockSec {
+				out.Clock = append(out.Clock, int32(out.Ticks), clockSec)
 			}
 			out.capture(e, prev, cur, a)
 			out.Live = append(out.Live, live)
@@ -207,15 +216,31 @@ func toReplayEvent(ev *MatchEvent, tick int, name func(PlayerID) string, homeNam
 	out := ReplayEvent{T: tick, Minute: int(ev.TimeMinute), Team: team}
 	p1 := name(ev.PrimaryPlayerId)
 	switch ev.Type {
-	case MatchEventType_GOAL, MatchEventType_OWN_GOAL:
+	case MatchEventType_GOAL:
 		out.Kind = "goal"
 		out.Text = fmt.Sprintf("GOL! %s (%s) — %s %d-%d %s", p1, club, homeName, ev.HomeScore, ev.AwayScore, awayName)
-		if ev.Type == MatchEventType_OWN_GOAL {
-			out.Text += " (bunuh diri)"
+	case MatchEventType_OWN_GOAL:
+		// The goal belongs to the scorer's opponents (the viewer's score and
+		// highlight build-up read Team).
+		out.Kind = "goal"
+		if team >= 0 {
+			out.Team = 1 - team
 		}
+		out.Text = fmt.Sprintf("GOL bunuh diri %s (%s) — %s %d-%d %s", p1, club, homeName, ev.HomeScore, ev.AwayScore, awayName)
 	case MatchEventType_SAVE:
-		out.Kind, out.Text = "save", "Diselamatkan: tembakan "+p1
-	case MatchEventType_SHOT_OFF_TARGET, MatchEventType_WOODWORK, MatchEventType_SHOT_BLOCKED, MatchEventType_PENALTY_MISSED:
+		// Team stays the keeper's side (viewer convention: save → 1 - attacker).
+		out.Kind, out.Text = "save", "Penyelamatan "+p1
+		if ev.SecondaryPlayerId != 0 {
+			out.Text += " — tembakan " + name(ev.SecondaryPlayerId)
+		}
+	case MatchEventType_SHOT_BLOCKED:
+		// Logged with the blocking defender; the viewer reads a miss's Team as
+		// the shooting side.
+		out.Kind, out.Text = "miss", "Tembakan diblok "+p1
+		if team >= 0 {
+			out.Team = 1 - team
+		}
+	case MatchEventType_SHOT_OFF_TARGET, MatchEventType_WOODWORK, MatchEventType_PENALTY_MISSED:
 		out.Kind, out.Text = "miss", "Tembakan "+p1+" "+MatchEventTypeName(ev.Type)
 	case MatchEventType_FOUL:
 		out.Kind, out.Text = "foul", "Pelanggaran oleh "+p1
@@ -256,11 +281,18 @@ func (e *MatchEngine) cSummary() [2]TeamStats {
 			t = 0
 		}
 		switch ev.Type {
-		case MatchEventType_GOAL, MatchEventType_SAVE, MatchEventType_SHOT_OFF_TARGET, MatchEventType_WOODWORK, MatchEventType_SHOT_BLOCKED, MatchEventType_PENALTY_MISSED:
+		case MatchEventType_GOAL, MatchEventType_SHOT_OFF_TARGET, MatchEventType_WOODWORK, MatchEventType_PENALTY_MISSED:
 			s[t].Shots++
-			if ev.Type == MatchEventType_GOAL || ev.Type == MatchEventType_SAVE {
+			if ev.Type == MatchEventType_GOAL {
 				s[t].OnTarget++
 			}
+		case MatchEventType_SAVE:
+			// logged with the keeper: the shot is the other side's
+			s[1-t].Shots++
+			s[1-t].OnTarget++
+		case MatchEventType_SHOT_BLOCKED:
+			// logged with the blocking defender
+			s[1-t].Shots++
 		case MatchEventType_FOUL:
 			s[t].Fouls++
 		case MatchEventType_YELLOW_CARD:

@@ -99,7 +99,9 @@ type vReplay struct {
 	// schema 2 (after the schema-1 payload)
 	Schema int    `json:"schema"`
 	Live   string `json:"live"`
-	Meta   vMeta  `json:"meta"`
+	// Clock: run-length match clock, pairs (sample, match second).
+	Clock []int32 `json:"clock,omitempty"`
+	Meta  vMeta   `json:"meta"`
 }
 
 func team(sq *data.Squad) vTeam {
@@ -185,6 +187,7 @@ func play(spec matchSpec) (vReplay, *engine.ReplayData, error) {
 		}
 	}
 	v.Live = string(live)
+	v.Clock = rep.Clock
 	v.Meta = vMeta{Schema: engine.ReplaySchema, Engine: "fm-engine-go", Seed: rep.Seed, TPS: rep.TPS,
 		Home: home.Club, Away: away.Club, Formation: spec.Formation,
 		Data:   vData{CSV: spec.CSV, SHA256: fileSHA256(spec.CSV), LineupSHA256: lineupHash(home, away)},
