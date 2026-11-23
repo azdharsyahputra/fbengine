@@ -387,3 +387,33 @@ Dugaan "terlalu main aman" melemah: geometri umpan sama, tetapi di bola asli ~1 
 **Tersangka berikutnya:**
 1. Bek tidak pernah berdiri di jalur umpan (ukur okupansi jalur umpan saat ditendang, Metrica vs engine, seperti jalur tembakan).
 2. Umpan dan kontrol pertama terlalu sempurna (Metrica: ~40 BALL LOST tanpa potong + ~38 BALL OUT per laga).
+
+## Ronde 17: jalur umpan — bek atau pengumpan?
+
+**Ukur** (`audit/passlane.js`, `audit/lanecover.js`):
+
+| | Metrica | SkillCorner | Engine |
+|---|---|---|---|
+| Umpan yang ditendang lewat jalur dengan bek ≤1 m | 9% | 10% | **2%** |
+| ≤2 m | 20% | 21% | 15% |
+| Umpan hilang | 16.5% | 12.3% | 4.1% |
+| **Semua opsi umpan** (teman 5–30 m) yang jalurnya ditutup bek ≤1 m | 19% | – | 23% |
+| ≤2 m | 37% | – | 40% |
+
+**Bek engine memotong jalur sama seringnya dengan bek asli.** Yang berbeda adalah pengumpannya: pemain asli tetap mengumpan lewat jalur yang tertutup (9–10%) dan sebagian kehilangan bola; pengumpan engine hampir tidak pernah (2%). Model M2 menganggap bek dalam 1.25 m dari jalur pasti memotong (fisika hanya ~50–60%), jadi pengumpan terlalu takut dan hanya memilih umpan yang sempurna aman.
+
+**Uji persepsi pengumpan** `M2.InterceptRadius` (`ir`, 1.25):
+
+| 20 seed (utama / tambahan) | Bola hilang | kept (74–86) | possMed (4.5–7.5) | bwMid (22–34) | carry25 | Tembakan/tim | Gol | Kuning | Skor | Penjaga bentuk / keputusan |
+|---|---|---|---|---|---|---|---|---|---|---|
+| default `ir=1.25` | 7.6% | 91 / 91 | 12.5 / 12.9 | 32 / 33 | 21 / 22 | 21.2 | 4.4 / 5.4 | 5.7 | 0.775 | 1 / 3 dari 8 / 5 |
+| `ir=0.8` | 11.9% | 88 / 89 | 9.2 / 9.4 | 26 / 27 | 16 / 13 | 18.5 | 5.4 / 4.3 | 4.1 | 0.805 / 0.832 | 2–3 / 3 |
+| `ir=0.5` | 16% | **85 / 86** | **6.8 / 6.8** | **23 / 24** | 10 / 11 | 16.5 | 4.7 / 4.4 | 3.9 | 0.842 | 2 / **5** |
+
+`ir=0.5` meloloskan **semua** penjaga keputusan untuk pertama kali (kept, possMed, bwMid), plus recvOwn (19), kartu kuning dan tembakan mendekati EPL. Biayanya skor bentuk +0.067 (di atas noise 0.03):
+- giring ≥25 m per 90 (scorecard) 12 → 5.2: pemain mengumpan alih-alih menggiring;
+- penerimaan bergeser dari FB/CB ke AM, lebar dan jalur luar saat build-up menyempit;
+- recvMid 37 → 46, recvFinal 62 → 70;
+- metrik transisi membaik.
+
+`ir=0.8` tidak meloloskan kept/possMed. **Belum dijadikan default**; menunggu keputusan (nilai tengah ~0.65, atau terima 0.5).
