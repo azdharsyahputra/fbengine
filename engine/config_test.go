@@ -11,8 +11,9 @@ import (
 // behaviour, replays unchanged); 85cee7dd… go5: contain_distance 2.0;
 // 83a5d924… go6: loose.contest_gap 0.25 (+ m1.contain_window, loose.* fields);
 // 9f961677… B2: m2.lane_clear_radius removed (lane is spatialLaneBlockers);
-// 1f84b21c… go9: press.* (organised press in the opponent's third).
-const goldenDefaultHash = "1f84b21c079e216d26b55105680b2e0ea6fbd9abbe751a887a8ea435b919ee79"
+// 1f84b21c… go9: press.* (organised press in the opponent's third);
+// ad85f0ba… go10: m1.forward_bypassed_effort 0, bypassed_sprint_goal 25, recover_clearance.
+const goldenDefaultHash = "ad85f0ba0576954575ce0d7d3318c2b1f878ef9ced7cbce01dfcf15fc44ee942"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

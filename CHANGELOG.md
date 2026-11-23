@@ -2,6 +2,27 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go10: Phase 2, item D (ball behaviour) (2026-11-23)
+
+Config `ad85f0ba…`.
+
+- **Change:** a bypassed forward trots back. `m1.forward_bypassed_effort` 0; he sprints only inside `m1.bypassed_sprint_goal` 25 m (go9: 0.6 / 40 m).
+- **Result (20 seeds vs go9):**
+
+  | | go9 | go10 | Real |
+  |---|---|---|---|
+  | chase≥3 | 10.1 | 5.2 | 5.8 |
+  | Backward | 30 | 27 | 24 |
+  | Ping-pong | 14.7 | 13.0 | — |
+  | Fouls per side | 20.8 | 18.9 | — |
+  | Box free | 18% | 22% | — |
+  | Middle-third pressure ≥1 in 5 m | 35.5% | 31.5% | — |
+  | Loose ≥5 | 9.4 | 9.9 | — |
+
+- **Ping-pong:** engine-truth ping-pongs are 4–7 per match. The rest of the cek count is duel contact (visual steals).
+- `m1.recover_clearance` was added and is off (no effect).
+- **Reproduce go9:** `FMENGINE_M1=fb=0.6,fg=40`.
+
 ## go9: Phase 2, item C (defending) (2026-11-23)
 
 Config `1f84b21c…`.

@@ -82,6 +82,14 @@ type M1Config struct {
 	// ContainWindow: outside the engage distance a Contain is sent only at a
 	// carrier someone reaches within this many seconds (FE local window 2 s).
 	ContainWindow float64 `json:"contain_window"` // cw
+	// RecoverClearance: a bypassed player's recovery run keeps this many
+	// metres off the ball's line (0: straight at his spot, go9).
+	RecoverClearance float64 `json:"recover_clearance"` // rc
+	// ForwardBypassedEffort: recovery effort (0 jog … 1 sprint) of a forward
+	// the ball has passed, unless the ball is within BypassedSprintGoal metres
+	// of his own goal (then he sprints).
+	ForwardBypassedEffort float64 `json:"forward_bypassed_effort"` // fb
+	BypassedSprintGoal    float64 `json:"bypassed_sprint_goal"`    // fg
 }
 
 // LooseConfig is the single loose-ball resolver (Phase 2, loose_ball.go):
@@ -179,7 +187,11 @@ func DefaultConfig() EngineConfig {
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
 		// 10.6→8.4, loose ≥5 11.6→9.0, fouls 24→21 per side.
-		M1: M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow},
+		M1: M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow,
+			// Phase 2 D (go10): a bypassed forward trots back (effort 0, ~2 m/s)
+			// and sprints only with the ball within 25 m of his goal (go9: 0.6
+			// and 40 m). 20 seeds: chase≥3 10.1 → 5.2 % (real 5.8).
+			ForwardBypassedEffort: 0, BypassedSprintGoal: 25},
 		// Phase 2 C3 (go9): press when the ball is in the opponent's third,
 		// engaging a carrier someone reaches within 6 s. The block step-up
 		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
@@ -225,6 +237,12 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M1.ContainDistance = f
 			case "cw":
 				c.M1.ContainWindow = f
+			case "rc":
+				c.M1.RecoverClearance = f
+			case "fb":
+				c.M1.ForwardBypassedEffort = f
+			case "fg":
+				c.M1.BypassedSprintGoal = f
 			case "lg":
 				c.Loose.ContestGap = f
 			case "ld":

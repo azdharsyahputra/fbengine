@@ -37,6 +37,12 @@ type auditState struct {
 		history    []auditChange
 		pingpong   map[string]int
 	}
+	// Chase anatomy (cek chase.js definition: defenders >3 m/s, >5 m away,
+	// heading at the ball within cos 0.8, while the ball is held).
+	chase struct {
+		held, three int
+		who         map[string]int
+	}
 	// Pressure on a carrier in his own third (build-up), defending side's view.
 	buildUp struct {
 		steps, engaged   int
@@ -145,6 +151,7 @@ func (e *MatchEngine) auditStep() {
 	case carrier != nil:
 		a.held++
 		e.auditBuildUp(carrier)
+		e.auditChase(carrier, ball)
 		e.auditVisualSteal(carrier, ball)
 		cm := toMetres(carrier.Position)
 		a.carrierGap = append(a.carrierGap, math.Hypot(ball.X-cm.X, ball.Y-cm.Y))
@@ -312,6 +319,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	}
 	e.auditPossessionReport(w)
 	e.auditBuildUpReport(w)
+	e.auditChaseReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -567,4 +575,73 @@ func (e *MatchEngine) auditBuildUpReport(w io.Writer) {
 	fmt.Fprintf(w, "AUDIT build-up (carrier in own third): steps %d | nearest defender median %.1f m | nearest forward %.1f m | M1 engager assigned %.0f%% (at %.1f m) | counterpress mode %.0f%%\n",
 		b.steps, med(b.nearest), med(b.forwardNearest), 100*float64(b.engaged)/float64(b.steps), med(b.engager),
 		100*float64(b.modeCounterpress)/float64(b.steps))
+}
+
+func (e *MatchEngine) auditChase(carrier *MatchPlayer, ball Vector2F) {
+	c := &e.audit.chase
+	if c.who == nil {
+		c.who = map[string]int{}
+	}
+	c.held++
+	def := !carrier.IsHomeTeam
+	dir := feM1Dir(def)
+	var runners []*MatchPlayer
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsGoalkeeper || p.IsHomeTeam != def {
+			continue
+		}
+		pm := toMetres(p.Position)
+		v := p.Velocity
+		sp := math.Hypot(v.X, v.Y)
+		dx, dy := ball.X-pm.X, ball.Y-pm.Y
+		d := math.Hypot(dx, dy)
+		if sp > 3 && d > 5 && (v.X*dx+v.Y*dy)/(sp*d) > 0.8 {
+			runners = append(runners, p)
+		}
+	}
+	if len(runners) < 3 {
+		return
+	}
+	c.three++
+	for _, p := range runners {
+		k := p.TargetOwner.String() + ":" + p.TargetReason.String()
+		// upfield of the ball (bypassed: running back toward his own goal)
+		if (feM1ToM(p.Position).X-feM1ToM(carrier.Position).X)*dir > 0 {
+			k += " [bypassed " + roleShortKeys[p.Player.GetRole()]
+			sp := math.Hypot(p.Velocity.X, p.Velocity.Y)
+			switch {
+			case sp < 5:
+				k += " <5m/s]"
+			case sp < 7:
+				k += " 5-7m/s]"
+			default:
+				k += " >7m/s]"
+			}
+		}
+		c.who[k]++
+	}
+}
+
+func (e *MatchEngine) auditChaseReport(w io.Writer) {
+	c := &e.audit.chase
+	if c.held == 0 {
+		return
+	}
+	type kv struct {
+		k string
+		n int
+	}
+	var r []kv
+	tot := 0
+	for k, n := range c.who {
+		r = append(r, kv{k, n})
+		tot += n
+	}
+	sort.Slice(r, func(i, j int) bool { return r[i].n > r[j].n || r[i].n == r[j].n && r[i].k < r[j].k })
+	fmt.Fprintf(w, "AUDIT chase>=3 (engine velocity): %.1f%% of held steps | runners by owner:reason:", 100*float64(c.three)/float64(c.held))
+	for i := 0; i < len(r) && i < 14; i++ {
+		fmt.Fprintf(w, " %s %.0f%% |", r[i].k, 100*float64(r[i].n)/float64(tot))
+	}
+	fmt.Fprintln(w)
 }

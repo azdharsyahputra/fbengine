@@ -756,13 +756,13 @@ func (e *MatchEngine) feM1Apply(home bool, side *feM1Side, s *feM1State) {
 				// midfielder a little upfield of his spot gets back at a
 				// graded effort.
 				goalSide := (pm.X-side.ball.X)*feM1Dir(home) < 0
-				ballNearGoal := feM1Dist(side.ball, feM1Vec{feM1OwnGoalX(home), 0}) < feM1BypassedSprintGoalMetres
+				ballNearGoal := feM1Dist(side.ball, feM1Vec{feM1OwnGoalX(home), 0}) < e.cfg.M1.BypassedSprintGoal
 				if goalSide && feM1Forward(p) {
 					effort = feM1ForwardRegroupEffort
 				} else if !goalSide && feM1Forward(p) && !ballNearGoal {
 					// A forward the ball has passed far from his goal runs
 					// back hard but not flat out.
-					effort = feM1ForwardBypassedEffort
+					effort = e.cfg.M1.ForwardBypassedEffort
 				} else if goalSide && behind < feM1TrulyOutMetres {
 					// Near his goal the graded regroup starts higher.
 					floor := feM1RegroupMinEffort
@@ -812,6 +812,10 @@ func (e *MatchEngine) feM1Apply(home bool, side *feM1Side, s *feM1State) {
 				target = e.tightMarkPoint(p, tight, target)
 				individual = true
 			}
+		}
+		if cl := e.cfg.M1.RecoverClearance; cl > 0 &&
+			(task.role == feM1RoleRecoverShape || task.role == feM1RoleProtectDepth) {
+			target = e.feM1RecoverAround(p, target, side.ball, cl, home)
 		}
 		target = Vector2F{hClamp(target.X, Pitch_PLAYER_MIN_X, Pitch_PLAYER_MAX_X),
 			hClamp(target.Y, Pitch_PLAYER_MIN_Y, Pitch_PLAYER_MAX_Y)}
@@ -885,4 +889,33 @@ func (e *MatchEngine) pressGap(p *Player) float64 {
 		return e.cfg.Press.MidGap
 	}
 	return -1
+}
+
+// feM1RecoverAround (ours, Phase 2 / D): a bypassed player (upfield of the
+// ball) getting back to his shape spot does not run through the ball: if the
+// straight line to his target passes within clearance of the ball, the
+// target moves sideways so he retreats in a lane at least clearance off the
+// ball's line (as real players recover goal-side in their own channel).
+func (e *MatchEngine) feM1RecoverAround(p *MatchPlayer, target Vector2F, ball feM1Vec, clearance float64, home bool) Vector2F {
+	dir := feM1Dir(home)
+	pm, tm := feM1ToM(p.Position), feM1ToM(target)
+	if (pm.X-ball.X)*dir <= 0 {
+		return target
+	}
+	dx, dy := tm.X-pm.X, tm.Y-pm.Y
+	len2 := dx*dx + dy*dy
+	off := feM1Dist(pm, ball)
+	if len2 > 1e-9 {
+		f := hClamp(((ball.X-pm.X)*dx+(ball.Y-pm.Y)*dy)/len2, 0, 1)
+		off = math.Hypot(pm.X+f*dx-ball.X, pm.Y+f*dy-ball.Y)
+	}
+	if off >= clearance {
+		return target
+	}
+	side := math.Copysign(1, tm.Y-ball.Y)
+	if math.Abs(tm.Y-ball.Y) < 0.5 {
+		side = math.Copysign(1, pm.Y-ball.Y)
+	}
+	tm.Y = hClamp(ball.Y+side*math.Max(math.Abs(tm.Y-ball.Y), clearance), -feM1HalfWidth+feM1TargetInset, feM1HalfWidth-feM1TargetInset)
+	return feM1ToPitch(tm)
 }

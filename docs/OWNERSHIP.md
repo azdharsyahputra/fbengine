@@ -119,3 +119,17 @@ go9, 10 seeds, front-of-box zone:
   - Block step-up (`press.forward_gap` / `mid_gap`, 99 = off).
   - Lower presser effort (`press.effort`): no effect, because M3 drives PRESS at full effort.
 - **Trade-off found:** any stronger press (wider zone, step-up) raises chase≥3. Real teams get pressure from already-close positions, not long runs.
+
+## Ball behaviour (item D)
+
+- **Chase anatomy (probe, cek definition).** 44–54% of the defenders in a ≥3-runner moment were *bypassed* players on M1 recover-shape, mostly forwards (ST/W/CAM). They ran back toward their own goal through the ball's direction at 5–7 m/s (effort 0.6), or sprinted inside 40 m of goal. Real defending strikers almost never run at the ball above 3 m/s (0.04 per instant).
+- **Fix (M1, config):**
+  - A bypassed forward trots back (`m1.forward_bypassed_effort` 0, ~2 m/s).
+  - He sprints only with the ball inside `m1.bypassed_sprint_goal` (25 m).
+- **Tried, kept off:**
+  - `m1.recover_clearance`, a sideways recovery lane. No effect: a run back toward goal with the ball between the player and his goal is "toward the ball" whatever the lane.
+  - A lower trot effort without the near-goal limit. It raised chase≥3 to 13–15, because forwards left further behind sprinted later.
+- **Ping-pong anatomy at go10:**
+  - Real possession ping-pongs (engine truth) are 4–7 per match, at or below the real cek figure of 8.
+  - The rest of the cek count (11–23) is duel contact: 17–29 visual steals per match, mostly the Contain's challenges. These are real duels, so they are not suppressed.
+- **Open:** loose ball ≥5 (9.9 vs 6.8). Its runners are recoveries and transition support, not claimers.
