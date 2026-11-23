@@ -148,6 +148,65 @@ Sisa penjaga bentuk yang besar: chase≥3 (23) dan bola liar ≥5 (27).
 
 **Syarat penanda dari sisi gawang** (`mark_behind` 3) dites lagi: gol 5.1. Tetap mati (99).
 
+## Putaran 5 (2026-11-24): bedah chase≥3 dan bola liar ≥5
+
+**Definisi cek** (`viewer/cek/chase.js`):
+- **chase≥3:** bola dipegang (ada pemain dalam 0.8 m) dan ≥3 pemain bertahan lari di atas 3 m/s lurus ke bola dari jarak lebih dari 5 m.
+- **"Bola liar ≥5":** setiap momen **tanpa** pemain dalam 0.8 m dari bola. Ini termasuk semua umpan di udara, bukan cuma bola liar beneran.
+
+**Profil pelari** (bola dipegang):
+
+| | Metrica | F2c | go16 |
+|---|---|---|---|
+| Pelari bertahan per saat | 0.65–0.86 | **1.5–1.8** | 0.72 |
+| Jarak ke bola (median) | 16–21 m | 20–22 m | 12 m |
+| Kecepatan (median) | 3.8 m/s | 4.7 m/s | 4.8 m/s |
+| Sedang mengikuti orang | 30–36% | 26% | 15% |
+| Sudah terlewati bola | 43–48% | 39–40% | 21% |
+
+Arah dan konteks lari F2c **mirip asli**. Bedanya jumlah (2×) dan kecepatan.
+
+**Tempo bola mirip asli:**
+
+| | Metrica | Engine |
+|---|---|---|
+| Pergantian pemegang per menit hidup | 19–20 | 21–25 |
+| Lama tanpa pemegang (median) | 1.0 dtk | 1.0 dtk |
+| Kecepatan bola tanpa pemegang (median) | 10–11 m/s | 11–12 m/s |
+
+**Akar masalahnya fisika dan kebijakan gerak** (sudah ada di go16):
+
+| | Metrica | F2c | go16 |
+|---|---|---|---|
+| Percepatan p50 / p90 (m/s²) | 0.75 / 2.0 | 1.24 / 4.6 | 0.99 / 4.2 |
+| Lari >4 m/s per pemain-jam | 122–127 | 345 | 311 |
+
+Pemain mengegas dan mengerem dengan tenaga penuh untuk setiap koreksi kecil. Probe baru `AUDIT fast (>4 m/s)` di F2c (32.8% langkah pemain):
+- slot tim pegang bola 10.3%
+- penanda 7.7%
+- first defender 2.3%
+- job lama (support, carry, runner) sisanya
+
+**Dicoba dan tidak membantu** (10 seed, dibuang):
+
+| Yang dicoba | Hasil |
+|---|---|
+| Porsi feed-forward 0.5 | chase 23 |
+| Jangkar dihaluskan untuk tim pegang bola | chase 21, gol 3.9 |
+| Batas kecepatan penanda 4 m/s | chase 24 |
+| Porsi tenaga 0.25–0.5 untuk gerak slot/offset | Percepatan p90 3.3–4.2, tapi lari >4 m/s tetap ~300/jam dan chase **naik** ke 25–31 (pemain yang lambat mengegas jadi telat lalu lari lagi) |
+| Radius penandaan 15–25 m | chase 21–24 |
+
+**Kesimpulan:** chase dan bola liar adalah **gejala intensitas gerak**, bukan aturan posisi. Tenaga penuh juga dipakai job lama yang belum lewat composer (penerima, pelari, pembawa bola, first defender), dan kebijakan kecepatan composer belum dikalibrasi ke profil gerak asli.
+
+**Usulan langkah:** kalibrasi gerak sebagai satu kesatuan.
+1. Semua job (termasuk job lama) mendapat kebijakan kecepatan dan tenaga dari composer. M3 hanya eksekutor.
+2. Kebijakan itu dikalibrasi ke Metrica:
+   - porsi kecepatan;
+   - lari >4 m/s per pemain-jam;
+   - percepatan p50/p90.
+3. chase dan bola liar dinilai sebagai akibatnya.
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

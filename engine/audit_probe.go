@@ -41,6 +41,9 @@ type auditState struct {
 	// Carry spells (same carrier continuously): long ones (>=25 m) and how
 	// they were defended.
 	carry auditCarryState
+	// player-steps above 4 m/s by side and owner:reason, and all player-steps
+	fast    map[string]int
+	fastAll int
 	// Back line while defending: CB pair <2 m and both full-backs on one
 	// half of the width, with the owner:reason of the players involved.
 	// Attacking full-backs (own side holds, ball in the final third): owner:reason
@@ -147,6 +150,29 @@ func (e *MatchEngine) auditStep() {
 	}
 	e.auditPossession()
 	a.steps++
+	// fast movement (>4 m/s) by side and owner:reason: who sets the tempo
+	if a.fast == nil {
+		a.fast = map[string]int{}
+	}
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsGoalkeeper {
+			continue
+		}
+		a.fastAll++
+		if math.Hypot(p.Velocity.X, p.Velocity.Y) <= 4 {
+			continue
+		}
+		side := "def"
+		if e.lastControlledTeamHome.HasValue && e.lastControlledTeamHome.Value == p.IsHomeTeam {
+			side = "att"
+		}
+		k := side + " " + p.TargetOwner.String() + ":" + p.TargetReason.String()
+		if p.TargetRefiner != TargetOwner_NONE {
+			k += "+" + p.TargetRefiner.String()
+		}
+		a.fast[k]++
+	}
 	ball := toMetres(e.ball.Position)
 	carrier := e.findMatchPlayer(e.ball.PossessedBy)
 	towards := func(p *MatchPlayer) bool { // >3 m/s, >5 m away, heading at the ball (cos>0.8)
@@ -346,6 +372,26 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditChaseReport(w)
 	e.auditPivotReport(w)
 	e.auditCarryReport(w)
+	if len(e.audit.fast) > 0 {
+		type kv struct {
+			k string
+			v int
+		}
+		var xs []kv
+		tot := 0
+		for k, v := range e.audit.fast {
+			xs = append(xs, kv{k, v})
+			tot += v
+		}
+		sort.Slice(xs, func(i, j int) bool { return xs[i].v > xs[j].v || xs[i].v == xs[j].v && xs[i].k < xs[j].k })
+		fmt.Fprintf(w, "AUDIT fast (>4 m/s): %.1f%% of outfield player-steps |", 100*float64(tot)/float64(max(e.audit.fastAll, 1)))
+		for i, x := range xs {
+			if i < 16 {
+				fmt.Fprintf(w, " %s %.1f%% |", x.k, 100*float64(x.v)/float64(e.audit.fastAll))
+			}
+		}
+		fmt.Fprintln(w)
+	}
 	e.auditBackReport(w)
 	e.auditFullBackReport(w)
 	e.auditVisualReport(w)
