@@ -23,7 +23,7 @@ import (
 // 8bbfec1d… F2 checkpoint: modules.team_shape (off) + team_shape section; go16 play unchanged.
 // a17389cf… F2b: native counter-press, press-zone man marking, pressing trigger (TS still off).
 // 3321a508… F2c: compose in the set-piece phase, no marking on a loose ball, claim jobs only for designated claimers (TS still off).
-const goldenDefaultHash = "288b763f6f56a9b9ef58acf0f9e429316ec04f0c564167ccc074c64f25b703d0"
+const goldenDefaultHash = "389b562797444e1a0cbd392e22d8aabbd48496d63cc661a4f649cd837f884943"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {

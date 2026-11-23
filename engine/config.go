@@ -302,6 +302,10 @@ type TeamShapeConfig struct {
 	// goal are marked at MarkGoalSide; deeper (further out) ones get the
 	// MarkSlope gap too. 0 = the whole danger zone is tight (F5 ml).
 	MarkTight float64 `json:"mark_tight"` // mt
+	// BypassTrot: a marker the ball has bypassed (more than 3 m upfield of it,
+	// the ball further than M1.BypassedSprintGoal from goal) trots back like a
+	// bypassed slot-holder instead of chasing his man at RunSpeed. false = F5.
+	BypassTrot bool `json:"bypass_trot"` // bt (0/1)
 	// CounterPress (s): after losing the ball the side presses as in the press zone for
 	// this long (away from its own goal).
 	CounterPress float64 `json:"counter_press"` // cp
@@ -490,6 +494,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.MarkSlope = f
 			case "mt":
 				c.TeamShape.MarkTight = f
+			case "bt":
+				c.TeamShape.BypassTrot = f != 0
 			case "cp":
 				c.TeamShape.CounterPress = f
 			case "pr":

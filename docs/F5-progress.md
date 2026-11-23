@@ -297,3 +297,18 @@ Disiplin membaik jelas, bentuk netral. Selisih gol +0.5 sekitar 0.8 SD di 20 see
 - percobaan tekel ~196 per laga.
 
 Petunjuk untuk nanti: sliding pemulihan dalam 20 m dari gawang (~59 per laga, meleset ~50%) dan reckless = sliding dari belakang atau kecepatan ≥5 m/s (`feRecklessSpeed`).
+
+## Ronde 13: chase — marker yang kelewat bola (flag, default off)
+
+**Ukur** (probe `AUDIT chase>=3`, seed 19): pelari di momen chase≥3: marker 23% + marker yang sudah kelewat bola ~25% (lari balik 5–7 m/s), slot 15%, first defender/cover/screen 16%. Aturan "yang kelewat bola jogging balik" (`TrotSpeed` 2.6) hanya berlaku untuk pemegang slot; marker mengejar orangnya dengan kecepatan orang itu + menutup jarak, hingga `RunSpeed` 5.5.
+
+**Perubahan uji:** `TeamShape.BypassTrot` (kunci `bt`), marker yang kelewat bola juga jogging balik. Helper `teamShapeBypassed` dipakai bersama.
+
+| 20 seed (utama / tambahan) | chase3 (5–10) | liar5 (6–10.5) | recvPress (≤37) | Gol | Skor |
+|---|---|---|---|---|---|
+| default | 17.2 / 17.7 | 24 / 24 | 37 / 36 | 4.5 / 4.1 | 0.745 / 0.793 |
+| `bt=1` | 14.7 / 14.3 | 19.9 / 19.9 | 39 / 38 | 4.4 / 5.4 | 0.781 / 0.780 |
+
+Target bergerak konsisten, tetapi penjaga recvPress jebol di dua set dan gol naik ~0.6. **Tidak dijadikan default**; flag disimpan (off).
+
+**Pola:** recvPress duduk di tepi atas rentang (36–37). Hampir setiap perubahan yang melonggarkan pertahanan (`ss` rendah, `tr`, `tg`, `bt`) mendorongnya ke 38–39 dan menaikkan gol. Sebelum melonggarkan pertahanan lagi, recvPress perlu dibedah sendiri (siapa yang menekan penerima, dan apakah definisinya sebanding dengan Metrica).

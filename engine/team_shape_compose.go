@@ -197,6 +197,9 @@ func (e *MatchEngine) teamShapeCompose() {
 					want = math.Min(want, teamShapeSpeedP90[teamShapeRoleGroup(p)][e.teamShapePhase(p)])
 				}
 				p.ComposeSpeed, p.ComposeWant = uint8(composeRun)+1, want
+				if ts.BypassTrot && e.teamShapeBypassed(p) {
+					p.ComposeSpeed = teamShapeTrot // ours: bypassed, he trots back like the block
+				}
 				continue
 			}
 			native = true
@@ -250,15 +253,19 @@ func (e *MatchEngine) teamShapeCompose() {
 			p.ComposeSpeed = uint8(composeWalk) + 1
 		}
 		// a defender the ball has bypassed trots back (unless it nears his goal)
-		if st.set && st.home != p.IsHomeTeam && p.ComposeSpeed > uint8(composeWalk)+1 {
-			fr := e.teamShapeSide(p.IsHomeTeam)
-			ub, _ := fr.toFrame(e.ball.Position.X*Pitch_LENGTH_METRES, e.ball.Position.Y*Pitch_WIDTH_METRES)
-			up, _ := fr.toFrame(p.Position.X*Pitch_LENGTH_METRES, p.Position.Y*Pitch_WIDTH_METRES)
-			if up > ub+3 && ub > e.cfg.M1.BypassedSprintGoal {
-				p.ComposeSpeed = teamShapeTrot
-			}
+		if st.set && st.home != p.IsHomeTeam && p.ComposeSpeed > uint8(composeWalk)+1 && e.teamShapeBypassed(p) {
+			p.ComposeSpeed = teamShapeTrot
 		}
 	}
+}
+
+// teamShapeBypassed: the ball is more than 3 m past the player toward his goal and still
+// further than M1.BypassedSprintGoal from it.
+func (e *MatchEngine) teamShapeBypassed(p *MatchPlayer) bool {
+	fr := e.teamShapeSide(p.IsHomeTeam)
+	ub, _ := fr.toFrame(e.ball.Position.X*Pitch_LENGTH_METRES, e.ball.Position.Y*Pitch_WIDTH_METRES)
+	up, _ := fr.toFrame(p.Position.X*Pitch_LENGTH_METRES, p.Position.Y*Pitch_WIDTH_METRES)
+	return up > ub+3 && ub > e.cfg.M1.BypassedSprintGoal
 }
 
 // teamShapeTrot is the ComposeSpeed value of a bypassed defender's recovery trot.
