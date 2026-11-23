@@ -126,6 +126,12 @@ go9, 10 seeds, front-of-box zone:
 - Before go13, a carrier in midfield space had no engager for 62% of a long carry, and M2 kept carrying (7–8 carry choices per spell).
 - Probe: `AUDIT long-carry decisions` (space share, decisions, carry-minus-best-pass margin) and `AUDIT long-carry engagement` (engager within 5 m / farther / none).
 
+### C5: back line (go14)
+
+- `m1.rest_gap`: the two ProtectDepth rest defenders keep at least 9 m apart across the pitch.
+- `m1.full_back_cross`: a full-back on ProtectDepth/RecoverShape stays 2 m on his own flank. Engagers and markers are exempt.
+- Probe: `AUDIT back line` (CB pair <2 m and both FBs on one half, with owner:reason).
+
 ## Ball behaviour (item D)
 
 - **Chase anatomy (probe, cek definition).** 44–54% of the defenders in a ≥3-runner moment were *bypassed* players on M1 recover-shape, mostly forwards (ST/W/CAM). They ran back toward their own goal through the ball's direction at 5–7 m/s (effort 0.6), or sprinted inside 40 m of goal. Real defending strikers almost never run at the ball above 3 m/s (0.04 per instant).

@@ -41,6 +41,12 @@ type auditState struct {
 	// Carry spells (same carrier continuously): long ones (>=25 m) and how
 	// they were defended.
 	carry auditCarryState
+	// Back line while defending: CB pair <2 m and both full-backs on one
+	// half of the width, with the owner:reason of the players involved.
+	back struct {
+		steps, stack, same int
+		stackWhy, sameWhy  map[string]int
+	}
 	// Pivot (CDM/CM) of the side in possession: reason and depth behind the ball.
 	pivot map[string][]float64
 	// Chase anatomy (cek chase.js definition: defenders >3 m/s, >5 m away,
@@ -160,6 +166,7 @@ func (e *MatchEngine) auditStep() {
 		e.auditPivot(carrier)
 		e.auditBuildUp(carrier)
 		e.auditChase(carrier, ball)
+		e.auditBackLine(carrier)
 		e.auditVisualSteal(carrier, ball)
 		cm := toMetres(carrier.Position)
 		a.carrierGap = append(a.carrierGap, math.Hypot(ball.X-cm.X, ball.Y-cm.Y))
@@ -330,6 +337,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditChaseReport(w)
 	e.auditPivotReport(w)
 	e.auditCarryReport(w)
+	e.auditBackReport(w)
 	e.auditVisualReport(w)
 	fmt.Fprintf(w, "AUDIT target owner (player-steps) live:%s | stoppages:%s\n", share(a.owners), share(a.deadOwners))
 	type kv struct {
@@ -883,4 +891,85 @@ func (e *MatchEngine) auditCarryReport(w io.Writer) {
 	n := float64(c.longEng[0] + c.longEng[1] + c.longEng[2])
 	fmt.Fprintf(w, "AUDIT long-carry engagement (steps): M1 engager within 5 m %.0f%% | engager farther %.0f%% (median %.1f m) | no engager %.0f%%\n",
 		100*float64(c.longEng[0])/n, 100*float64(c.longEng[1])/n, med(c.longEngFar), 100*float64(c.longEng[2])/n)
+}
+
+// auditBackLine: the defending side's two centre-backs and two full-backs.
+func (e *MatchEngine) auditBackLine(carrier *MatchPlayer) {
+	b := &e.audit.back
+	if b.stackWhy == nil {
+		b.stackWhy, b.sameWhy = map[string]int{}, map[string]int{}
+	}
+	var cb, fb []*MatchPlayer
+	for i := range e.players {
+		q := &e.players[i]
+		if !active(q) || q.IsHomeTeam == carrier.IsHomeTeam || q.Player == nil {
+			continue
+		}
+		switch roleShortKeys[q.Player.GetRole()] {
+		case "ROLE_SHORT_CB":
+			cb = append(cb, q)
+		case "ROLE_SHORT_LB", "ROLE_SHORT_RB", "ROLE_SHORT_LWB", "ROLE_SHORT_RWB":
+			fb = append(fb, q)
+		}
+	}
+	if len(cb) != 2 || len(fb) != 2 {
+		return
+	}
+	why := func(q *MatchPlayer) string { return q.TargetOwner.String() + ":" + q.TargetReason.String() }
+	pair := func(a, c string) string {
+		if a > c {
+			a, c = c, a
+		}
+		return a + " & " + c
+	}
+	b.steps++
+	if feM1Dist(feM1ToM(cb[0].Position), feM1ToM(cb[1].Position)) < 2 {
+		b.stack++
+		b.stackWhy[pair(why(cb[0]), why(cb[1]))]++
+	}
+	y0, y1 := feM1ToM(fb[0].Position).Y, feM1ToM(fb[1].Position).Y
+	if y0*y1 > 0 {
+		b.same++
+		// the crossed one: nearer the centre line; zone of the ball
+		q := fb[0]
+		if math.Abs(y1) < math.Abs(y0) {
+			q = fb[1]
+		}
+		u := (feM1ToM(e.ball.Position).X*feM1Dir(q.IsHomeTeam) + feM1HalfLength)
+		z := "final"
+		if u < 35 {
+			z = "own"
+		} else if u < 70 {
+			z = "mid"
+		}
+		b.sameWhy[z+" crossed "+why(q)]++
+	}
+}
+
+func (e *MatchEngine) auditBackReport(w io.Writer) {
+	b := &e.audit.back
+	if b.steps == 0 {
+		return
+	}
+	top := func(m map[string]int, n int) string {
+		type kv struct {
+			k string
+			v int
+		}
+		var xs []kv
+		for k, v := range m {
+			xs = append(xs, kv{k, v})
+		}
+		sort.Slice(xs, func(i, j int) bool { return xs[i].v > xs[j].v || xs[i].v == xs[j].v && xs[i].k < xs[j].k })
+		out := ""
+		for i, x := range xs {
+			if i >= 6 {
+				break
+			}
+			out += fmt.Sprintf(" %s %d%% |", x.k, 100*x.v/n)
+		}
+		return out
+	}
+	fmt.Fprintf(w, "AUDIT back line (ball held by the opponent): CBs <2 m %.1f%% |%s\n", 100*float64(b.stack)/float64(b.steps), top(b.stackWhy, max(b.stack, 1)))
+	fmt.Fprintf(w, "AUDIT back line: both FBs on one half of the width %.1f%% |%s\n", 100*float64(b.same)/float64(b.steps), top(b.sameWhy, max(b.same, 1)))
 }

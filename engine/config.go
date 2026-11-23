@@ -98,6 +98,15 @@ type M1Config struct {
 	// of his own goal (then he sprints).
 	ForwardBypassedEffort float64 `json:"forward_bypassed_effort"` // fb
 	BypassedSprintGoal    float64 `json:"bypassed_sprint_goal"`    // fg
+	// RestGap: the least lateral gap (m) between the two ProtectDepth
+	// defenders; they spread about their midpoint, each keeping his side
+	// (0: none, go4-go13 — with no runner both aimed at the same spot; go14 9).
+	RestGap float64 `json:"rest_gap"` // rg
+	// FullBackCross: how far (m) past the pitch's centre line a full-back on
+	// shape duty (ProtectDepth / RecoverShape) may go toward the far side;
+	// he tucks in, he does not swap flanks (99: unlimited, go4-go13; go14 -2,
+	// i.e. he stays 2 m on his own side).
+	FullBackCross float64 `json:"full_back_cross"` // fc
 }
 
 // LooseConfig is the single loose-ball resolver (Phase 2, loose_ball.go):
@@ -210,7 +219,9 @@ func DefaultConfig() EngineConfig {
 			// Phase 2 D (go10): a bypassed forward trots back (effort 0, ~2 m/s)
 			// and sprints only with the ball within 25 m of his goal (go9: 0.6
 			// and 40 m). 20 seeds: chase≥3 10.1 → 5.2 % (real 5.8).
-			ForwardBypassedEffort: 0, BypassedSprintGoal: 25},
+			ForwardBypassedEffort: 0, BypassedSprintGoal: 25,
+			// go14: back-line spacing and flank discipline.
+			RestGap: 9, FullBackCross: -2},
 		// Phase 2 C3 (go9): press when the ball is in the opponent's third,
 		// engaging a carrier someone reaches within 6 s. The block step-up
 		// (ForwardGap/MidGap) stays off: it raised chase≥3 to 11.6-15.
@@ -266,6 +277,10 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M1.RecoverClearance = f
 			case "fb":
 				c.M1.ForwardBypassedEffort = f
+			case "fc":
+				c.M1.FullBackCross = f
+			case "rg":
+				c.M1.RestGap = f
 			case "fg":
 				c.M1.BypassedSprintGoal = f
 			case "lg":

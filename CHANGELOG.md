@@ -2,6 +2,28 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go14: back-line discipline (2026-11-23)
+
+From the go11 critique, problem 3. New probe lines: `AUDIT back line`, with the owner:reason of the CB pair and of the crossed full-back.
+
+- **Causes:**
+  - **CB pair on one spot:** 91% of the time both CBs were M1 ProtectDepth. With no runner in its corridor, each rest defender aims at ball.y ± 3 m, picking the side from the pitch centre rather than from his partner. Two CBs on the same side of the centre therefore got the same spot.
+  - **Both FBs on one flank:** the far full-back on shape duty (ProtectDepth / RecoverShape) was pulled across the centre line toward the ball.
+- **Changes (M1):**
+  - `m1.rest_gap` 9: the two ProtectDepth defenders keep ≥9 m apart across the pitch, spread about their midpoint, each on his current side.
+  - `m1.full_back_cross` −2: a full-back on shape duty stays at least 2 m on his own flank (formation side). Engagers and markers still follow their man.
+- **Result (10 seeds vs go13, defending, replay):**
+
+  | | go13 | go14 | Real |
+  |---|---|---|---|
+  | CBs <2 m apart, own / mid / final third | 12 / 19 / 10% | 1.7 / 1.1 / 1.2% | 0–1% |
+  | CB gap median, own / mid | 7.8 / 5.8 m | 9.7 / 9.3 m | 8–9 / 11–12 m |
+  | Both FBs on one half, own / mid / final | 21 / 7 / 6% | 8.6 / 1.5 / 0.6% | 2–6 / 1–4% |
+
+- Other metrics stay within seed noise (chase≥3 5.6, mid3in5 47%, carries ≥25 m 10.4, box free 29%, fouls 18.5).
+- **Remaining:** in the own third the crossed full-back is mostly a marker, cover or contain following a man.
+- **Reproduce go13:** `FMENGINE_M1=rg=0,fc=99`.
+
 ## go13: carriers left to dribble in midfield (2026-11-23)
 
 From the go11 critique, problem 2.

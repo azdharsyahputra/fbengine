@@ -561,6 +561,21 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 	}
 	protect(rest1)
 	protect(rest2)
+	// Back-line spacing (ours, go14): the two rest defenders keep at least
+	// m1.rest_gap between them across the pitch, each on his current side of
+	// the other, so the centre-back pair does not collapse onto one spot.
+	if g := e.cfg.M1.RestGap; g > 0 && rest1 >= 0 && rest2 >= 0 &&
+		tasks[rest1].role == feM1RoleProtectDepth && tasks[rest2].role == feM1RoleProtectDepth {
+		lo, hi := rest1, rest2
+		if feM1ToM(e.players[lo].Position).Y > feM1ToM(e.players[hi].Position).Y {
+			lo, hi = hi, lo
+		}
+		if tasks[hi].target.Y-tasks[lo].target.Y < g {
+			limit := feM1HalfWidth - feM1TargetInset - g/2
+			mid := hClamp((tasks[lo].target.Y+tasks[hi].target.Y)/2, -limit, limit)
+			tasks[lo].target.Y, tasks[hi].target.Y = mid-g/2, mid+g/2
+		}
+	}
 
 	// 4. RecoverShape for every unassigned outfielder (:586-600), with P12's
 	// marking as an offset before the goal-side clamp.
@@ -629,6 +644,25 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 		for slot := range e.players {
 			if backLine(slot) {
 				tasks[slot].target.X = line * dir
+			}
+		}
+	}
+
+	// Flank discipline (ours, go14): a full-back on shape duty keeps to his
+	// own flank (his formation side), at most m1.full_back_cross past the
+	// centre line; the far full-back tucks in instead of joining the near one.
+	if fc := e.cfg.M1.FullBackCross; fc < 99 {
+		for slot := range e.players {
+			p := e.players[slot].Player
+			if !backLine(slot) || (p.GetRole() != PlayerRole_LB && p.GetRole() != PlayerRole_RB) {
+				continue
+			}
+			side := 1.0
+			if feM1ToM(e.players[slot].BasePosition).Y < 0 {
+				side = -1.0
+			}
+			if tasks[slot].target.Y*side < -fc {
+				tasks[slot].target.Y = -fc * side
 			}
 		}
 	}
