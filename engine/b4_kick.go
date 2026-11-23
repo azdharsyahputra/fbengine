@@ -418,6 +418,7 @@ func (e *MatchEngine) takeShot(shooter *MatchPlayer, forcedXG float64, header bo
 		e.statsOf(creator).KeyPasses++
 	}
 	e.trackShot(shooter, xg, setPiece, header, penalty)
+	e.auditShot(shooter, xg, header, setPiece, penalty, freeKick)
 
 	event := e.logEventActor(MatchEventType_SHOT, shooter)
 	if header {

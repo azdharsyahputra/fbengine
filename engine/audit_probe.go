@@ -52,6 +52,9 @@ type auditState struct {
 	offPass map[string]int
 	// near-ball marking: attackers within 15 m of the ball; nearest defender <3 m by owner:reason
 	nearMark map[string]int
+	// shots by source, distance, xG and previous shot gap
+	shots    map[string]int
+	lastShot float64
 	nearAtt  int
 	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
 	sprintStart                    map[string]int
@@ -416,6 +419,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditFoulReport(w)
 	e.auditOffsideReport(w)
 	e.auditNearMarkReport(w)
+	e.auditShotReport(w)
 	if len(e.audit.fast) > 0 {
 		type kv struct {
 			k string
@@ -1384,6 +1388,81 @@ func (e *MatchEngine) auditNearMarkReport(w io.Writer) {
 		if i < 10 {
 			fmt.Fprintf(w, " %s %.1f%% |", k, 100*float64(a.nearMark[k])/float64(a.nearAtt))
 		}
+	}
+	fmt.Fprintln(w)
+}
+
+// auditShot records one shot (audit only).
+func (e *MatchEngine) auditShot(shooter *MatchPlayer, xg float64, header, setPiece, penalty, freeKick bool) {
+	if !e.diag.Audit {
+		return
+	}
+	a := &e.audit
+	if a.shots == nil {
+		a.shots = map[string]int{}
+	}
+	src := "open"
+	switch {
+	case penalty:
+		src = "penalty"
+	case freeKick:
+		src = "freekick"
+	case header:
+		src = "header"
+	}
+	if setPiece {
+		src += "+setpiece"
+	}
+	gx := Pitch_LENGTH_METRES
+	if !shooter.IsHomeTeam {
+		gx = 0
+	}
+	d := math.Hypot(shooter.Position.X*Pitch_LENGTH_METRES-gx, (shooter.Position.Y-0.5)*Pitch_WIDTH_METRES)
+	db := "d<11"
+	switch {
+	case d >= 25:
+		db = "d25+"
+	case d >= 18:
+		db = "d18-25"
+	case d >= 11:
+		db = "d11-18"
+	}
+	xb := "xg<.03"
+	switch {
+	case xg >= 0.3:
+		xb = "xg.30+"
+	case xg >= 0.1:
+		xb = "xg.10-.30"
+	case xg >= 0.05:
+		xb = "xg.05-.10"
+	case xg >= 0.03:
+		xb = "xg.03-.05"
+	}
+	now := e.getSimulatedSeconds()
+	if now-a.lastShot < 10 {
+		a.shots["within10s"]++
+	}
+	a.lastShot = now
+	a.shots["src "+src]++
+	a.shots[db]++
+	a.shots[xb]++
+	a.shots["all"]++
+	a.shots[fmt.Sprintf("xgsum1000")] += int(xg * 1000)
+}
+
+func (e *MatchEngine) auditShotReport(w io.Writer) {
+	a := &e.audit
+	if len(a.shots) == 0 {
+		return
+	}
+	var ks []string
+	for k := range a.shots {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	fmt.Fprintf(w, "AUDIT shots:")
+	for _, k := range ks {
+		fmt.Fprintf(w, " %s %d |", k, a.shots[k])
 	}
 	fmt.Fprintln(w)
 }

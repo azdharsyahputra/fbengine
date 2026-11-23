@@ -117,6 +117,16 @@ func (e *MatchEngine) checkOutOfBounds() {
 			return
 		}
 
+		if e.ball.IsShot {
+			// ours: a shot wide or over was never logged, so match stats and
+			// replays undercounted shots (~28 a match).
+			if shooter := e.findMatchPlayer(e.lastShooter); shooter != nil && shooter.Player != nil {
+				event := e.logEvent(MatchEventType_SHOT_OFF_TARGET)
+				event.HasTeam = true
+				event.IsHomeTeam = shooter.IsHomeTeam
+				event.PrimaryPlayerId = shooter.Player.GetId()
+			}
+		}
 		lastTouchHome := e.isHomePlayer(e.ball.LastPossessor)
 		if !rightGoalLine {
 			// Home defends the left goal.
