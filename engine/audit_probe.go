@@ -44,6 +44,12 @@ type auditState struct {
 	// player-steps above 4 m/s by side and owner:reason, and all player-steps
 	fast    map[string]int
 	fastAll int
+	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
+	sprintStart                    map[string]int
+	sprints, targetJumps, jobJumps int
+	wasFast                        []bool
+	lastTarget                     []Vector2F
+	lastReason                     []string
 	// Back line while defending: CB pair <2 m and both full-backs on one
 	// half of the width, with the owner:reason of the players involved.
 	// Attacking full-backs (own side holds, ball in the final third): owner:reason
@@ -153,6 +159,31 @@ func (e *MatchEngine) auditStep() {
 	// fast movement (>4 m/s) by side and owner:reason: who sets the tempo
 	if a.fast == nil {
 		a.fast = map[string]int{}
+		a.sprintStart = map[string]int{}
+		a.wasFast = make([]bool, len(e.players))
+		a.lastTarget = make([]Vector2F, len(e.players))
+		a.lastReason = make([]string, len(e.players))
+	}
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsGoalkeeper {
+			continue
+		}
+		k := p.TargetOwner.String() + ":" + p.TargetReason.String()
+		jump := math.Hypot((p.TacticalTarget.X-a.lastTarget[i].X)*Pitch_LENGTH_METRES, (p.TacticalTarget.Y-a.lastTarget[i].Y)*Pitch_WIDTH_METRES)
+		if jump > 4 && a.lastReason[i] != "" {
+			a.targetJumps++
+			if k != a.lastReason[i] {
+				a.jobJumps++
+			}
+		}
+		a.lastTarget[i], a.lastReason[i] = p.TacticalTarget, k
+		fast := math.Hypot(p.Velocity.X, p.Velocity.Y) > 4
+		if fast && !a.wasFast[i] {
+			a.sprintStart[k]++
+			a.sprints++
+		}
+		a.wasFast[i] = fast
 	}
 	for i := range e.players {
 		p := &e.players[i]
@@ -388,6 +419,24 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 		for i, x := range xs {
 			if i < 16 {
 				fmt.Fprintf(w, " %s %.1f%% |", x.k, 100*float64(x.v)/float64(e.audit.fastAll))
+			}
+		}
+		fmt.Fprintln(w)
+		hours := float64(e.audit.fastAll) * e.stepSeconds() / 3600
+		fmt.Fprintf(w, "AUDIT sprint starts (>4 m/s): %.0f per player-hour | target jumps >4 m %.0f per player-hour (job changed in %.0f%%) | starts by job:",
+			float64(e.audit.sprints)/hours, float64(e.audit.targetJumps)/hours, 100*float64(e.audit.jobJumps)/math.Max(1, float64(e.audit.targetJumps)))
+		type kv2 struct {
+			k string
+			v int
+		}
+		var ys []kv2
+		for k, v := range e.audit.sprintStart {
+			ys = append(ys, kv2{k, v})
+		}
+		sort.Slice(ys, func(i, j int) bool { return ys[i].v > ys[j].v || ys[i].v == ys[j].v && ys[i].k < ys[j].k })
+		for i, y := range ys {
+			if i < 14 {
+				fmt.Fprintf(w, " %s %.0f%% |", y.k, 100*float64(y.v)/math.Max(1, float64(e.audit.sprints)))
 			}
 		}
 		fmt.Fprintln(w)

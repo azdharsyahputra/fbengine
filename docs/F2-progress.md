@@ -207,6 +207,34 @@ Pemain mengegas dan mengerem dengan tenaga penuh untuk setiap koreksi kecil. Pro
    - percepatan p50/p90.
 3. chase dan bola liar dinilai sebagai akibatnya.
 
+## Putaran 6 (2026-11-24): kalibrasi gerak (10 seed)
+
+**Ukuran baru di scorecard** (`shape_suite` MOVE):
+
+| | Metrica | F2c | go16 |
+|---|---|---|---|
+| Percepatan p50 / p90 (m/s²) | 0.75 / 2.05 | 1.36 / 4.68 | — |
+| Lari >4 m/s per pemain-jam hidup | 234 | 681 | — |
+| Skor dengan metrik gerak | — | 0.921 | 1.451 |
+
+**Probe pemicu sprint** (`AUDIT sprint starts`):
+- F2c: 1.007 awal sprint per pemain-jam; target lompat >4 m 2.148 per pemain-jam, 81% karena job berganti.
+- go16: 670 / 2.319.
+
+| Yang dicoba | Hasil |
+|---|---|
+| Pasangan penanda dipertahankan + durasi job minimum | Lompatan target turun sedikit, sprint tidak |
+| Penghalusan target 0.6 / 1.2 dtk | Lompatan 2.148 → 1.320, sprint 649 / 580 per jam hidup, skor memburuk (0.97 / 0.99) |
+| Skala percepatan dan rem global 0.6 / 0.45 (semua pemain) | Percepatan p90 3.54 / 2.95, tapi sprint tetap 589 / 529, porsi >4 m/s tetap ~30%, chase **naik** ke 27–31 |
+
+**Kesimpulan:** yang terlalu tinggi adalah **kecepatan yang diminta** tiap job, bukan percepatan:
+- support, penerima, dan transisi (jalur lama);
+- first defender, penanda, dan slot yang jauh (composer).
+
+Pemain yang mengegas lebih pelan tetap mencapai >4 m/s, hanya terlambat. Semua knob gerak di atas dibuang. Yang disimpan: metrik gerak di scorecard dan probe pemicu sprint.
+
+**Langkah berikutnya:** tabel kebijakan kecepatan per job dan fase untuk **semua** job (termasuk jalur lama), dikalibrasi ke distribusi kecepatan per peran dan fase di Metrica. M3 cukup mengeksekusi.
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

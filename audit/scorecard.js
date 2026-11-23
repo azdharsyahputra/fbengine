@@ -79,6 +79,9 @@ if (!slots) {
   for (const z of ['own', 'mid', 'final']) for (const r of ['CB', 'FB', 'DM', 'AM', 'ST']) metrics.push([`receptions ${z} ${r} %`, s => s.recv[z]?.[r], 6]);
   for (const k of ['<2', '2-4', '4-5.5', '5.5-7', '>7']) metrics.push([`speed ${k} m/s %`, s => s.speed[k], k === '>7' ? 1 : 4]);
   metrics.push(['carries >=25 m per 90', s => s.carries, 3]);
+  metrics.push(['accel p50 m/s2', s => s.move.accP50, 0.15]);
+  metrics.push(['accel p90 m/s2', s => s.move.accP90, 0.4]);
+  metrics.push(['>4 m/s spells per player-hour', s => s.move.fastPerHour, 25]);
 }
 
 const cacheFile = '/Users/csadeveloper/fm/refdata/derived/scorecard_metrica.json';

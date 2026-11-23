@@ -29,6 +29,8 @@
 // S9 support (att) teammates within 15 m of the holder: ahead / level(±3 m) / behind
 // S10 recv   receptions (same-team holder change < 5 s) by role, per zone of the receiver
 // SPD        outfielder speed shares: <2, 2-4, 4-5.5, 5.5-7, >7 m/s (live samples)
+// MOVE       outfielder movement profile (speed over 0.5 s): |acceleration| p50/p90 (m/s2),
+//            spells above 4 m/s per player-hour of live play
 'use strict';
 const path = require('path');
 const { deadMask } = require('/Users/csadeveloper/fm/fm-game/viewer/cek/_live.js');
@@ -131,7 +133,23 @@ function measure(file) {
       }
     }
   }
-  const res = { file: path.basename(file), frames: used, groups: {}, recv: {}, speed: {}, slotDist: {} };
+  // movement profile
+  const accs = []; let spells = 0, liveTicks = 0;
+  for (let t = 0; t < T; t++) if (!dead[t]) liveTicks++;
+  for (let k = 0; k < 22; k++) {
+    if (k % 11 === 0) continue;
+    let prevV = null, fast = false;
+    for (let t = 2; t < T; t++) {
+      if (dead[t] || dead[t - 2]) { prevV = null; fast = false; continue; }
+      const a = P(t, k), b = P(t - 2, k); if (a[0] < 0 || b[0] < 0) { prevV = null; continue; }
+      const v = Math.hypot(a[0] - b[0], a[1] - b[1]) * tps / 2; if (v > 12) { prevV = null; continue; }
+      if (prevV !== null) accs.push(Math.abs(v - prevV) * tps);
+      prevV = v;
+      if (v > 4 && !fast) { spells++; fast = true; } else if (v <= 4) fast = false;
+    }
+  }
+  const res = { file: path.basename(file), frames: used, groups: {}, recv: {}, speed: {}, slotDist: {},
+    move: { accP50: q(accs, 0.5), accP90: q(accs, 0.9), fastPerHour: spells / 20 / (liveTicks / tps / 3600) } };
   for (const [k, v] of Object.entries(slotDist)) res.slotDist[k] = q(v, 0.5);
   for (const [k, b] of Object.entries(out)) {
     res.groups[k] = {
@@ -162,6 +180,7 @@ for (const z of ['own', 'mid', 'final']) {
   const g = {}; for (const role of ['CB', 'FB', 'DM', 'AM', 'ST']) g[role] = mean(rs.map(r => r[role] || 0)); g.n = mean(rs.map(r => r.n)); avg.recv[z] = g;
 }
 for (const k of ['<2', '2-4', '4-5.5', '5.5-7', '>7']) avg.speed[k] = mean(all.map(r => r.speed[k]));
+avg.move = {}; for (const k of ['accP50', 'accP90', 'fastPerHour']) avg.move[k] = mean(all.map(r => r.move[k]));
 avg.slotDist = {}; for (const k of new Set(all.flatMap(r => Object.keys(r.slotDist)))) avg.slotDist[k] = mean(all.map(r => r.slotDist[k]).filter(Number.isFinite));
 
 if (asJson) { console.log(JSON.stringify(avg)); process.exit(0); }
@@ -179,4 +198,5 @@ for (const o of order) for (const z of ['own', 'mid', 'final']) {
 }
 console.log('receptions by role (%): ' + Object.entries(avg.recv).map(([z, g]) => `${z}: ` + ['CB', 'FB', 'DM', 'AM', 'ST'].map(r => `${r} ${f0(g[r])}`).join(' ')).join(' | '));
 console.log('speed shares (%): ' + Object.entries(avg.speed).map(([k, v]) => `${k} ${f1(v)}`).join(' | '));
+console.log(`movement: |accel| p50 ${avg.move.accP50.toFixed(2)} p90 ${avg.move.accP90.toFixed(2)} m/s2 | >4 m/s spells per player-hour (live) ${avg.move.fastPerHour.toFixed(0)}`);
 if (useSlots) console.log('player-to-slot median (m): ' + Object.entries(avg.slotDist).map(([k, v]) => `${k} ${f1(v)}`).join(' | '));
