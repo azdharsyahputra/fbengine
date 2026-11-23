@@ -263,8 +263,12 @@ func toReplayEvent(ev *MatchEvent, tick int, name func(PlayerID) string, homeNam
 		if team >= 0 {
 			out.Team = 1 - team
 		}
-	case MatchEventType_SHOT_OFF_TARGET, MatchEventType_WOODWORK, MatchEventType_PENALTY_MISSED:
-		out.Kind, out.Text = "miss", "Tembakan "+p1+" "+MatchEventTypeName(ev.Type)
+	case MatchEventType_SHOT_OFF_TARGET:
+		out.Kind, out.Text = "miss", "Tembakan "+p1+" melenceng"
+	case MatchEventType_WOODWORK:
+		out.Kind, out.Text = "miss", "Tembakan "+p1+" kena tiang"
+	case MatchEventType_PENALTY_MISSED:
+		out.Kind, out.Text = "miss", "Penalti "+p1+" gagal"
 	case MatchEventType_FOUL:
 		out.Kind, out.Text = "foul", "Pelanggaran oleh "+p1
 	case MatchEventType_YELLOW_CARD:
