@@ -251,6 +251,25 @@ Pemain yang mengegas lebih pelan tetap mencapai >4 m/s, hanya terlambat. Semua k
 
 Sesuai stop-loss: tuning gerak dihentikan.
 
+## Status: TeamShape jadi default (2026-11-23)
+
+Keputusan stop-loss: `Modules.TeamShape` default **true**. Output default = F2c (identik byte per byte, seed 19 dan 7). Jalur lama tetap bisa dijalankan:
+- `FMENGINE_OFF=TS` → identik go16;
+- tag git `pre-ts-default` → commit terakhir dengan jalur lama sebagai default.
+
+`OFF=ALL` sekarang juga mematikan TeamShape. Kode jalur lama **belum** dihapus (F4 ditunda sampai F5 stabil).
+
+**Gap yang diterima (10 seed, rentang Metrica):**
+
+| Penjaga | Engine | Asli | Catatan |
+|---|---|---|---|
+| chase3 | 23 | 5–10 | Bukan masalah kecepatan (ronde 7). Akar: jumlah job menuju bola. |
+| liar5 | 25 | 6–10.5 | Sama. |
+| dmAm | 12.3 | 7–10.5 | Jarak DM–AM terlalu lebar. |
+| mid3in5 | 57 | 42–54 | Sedikit di atas. |
+
+Penjaga keputusan (kept 91, bwMid 36, possMed 9.8) adalah tugas F5.
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

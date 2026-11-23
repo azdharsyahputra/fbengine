@@ -296,7 +296,7 @@ func DefaultConfig() EngineConfig {
 		Modules: ModuleConfig{
 			M1Defence: true, M2Decision: true, M3Steering: true, M4Shape: true,
 			M5Collective: true, M6Challenge: true, M8Planner: false, M9Restart: true,
-			M10Structure: true, TeamShape: false,
+			M10Structure: true, TeamShape: true,
 		},
 		M2: M2Config{
 			ControlRadius:     1.5,
@@ -536,6 +536,7 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			md.M9Restart = false
 			md.M8Planner = false
 			md.M10Structure = false
+			md.TeamShape = false
 		case "":
 		default:
 			ignored = append(ignored, "OFF:"+m)
