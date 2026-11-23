@@ -188,30 +188,6 @@ func (e *MatchEngine) feM4Lines(home bool) (back, mid float64, ok bool) {
 	return back / 4.0, mid / 3.0, true
 }
 
-// feM4LaneClear is FE AttackGeometry.lane (CollectiveAttack.fs:58-79): no
-// opponent outfielder within the radius of the segment (FE metres, world).
-func (e *MatchEngine) feM4LaneClear(home bool, from, to feM1Vec, radius float64) bool {
-	dx, dy := to.X-from.X, to.Y-from.Y
-	lengthSq := dx*dx + dy*dy
-	if lengthSq <= 0 {
-		return false
-	}
-	for i := range e.players {
-		p := &e.players[i]
-		if p.IsHomeTeam == home || !feM1Outfielder(p) {
-			continue
-		}
-		o := feM1ToM(p.Position)
-		ox, oy := o.X-from.X, o.Y-from.Y
-		f := hClamp((ox*dx+oy*dy)/lengthSq, 0.0, 1.0)
-		ex, ey := ox-f*dx, oy-f*dy
-		if ex*ex+ey*ey < radius*radius {
-			return false
-		}
-	}
-	return true
-}
-
 func feM4IsForward(role PlayerRole) bool {
 	return role == PlayerRole_ST || role == PlayerRole_CAM || role == PlayerRole_LW ||
 		role == PlayerRole_RW || role == PlayerRole_LM || role == PlayerRole_RM
@@ -298,7 +274,7 @@ func (e *MatchEngine) feM4Refine(player *MatchPlayer, base Vector2F, carrier *Ma
 			score := e.feM4Score(player, home, dir, c) + bonus[i]
 			if no10 || openSeek {
 				w := feM1Vec{c.X * dir, c.Y}
-				if e.feM4LaneClear(home, carrierM, w, feM4LaneRadius) {
+				if e.spatialLaneOpen(home, carrierM, w, feM4LaneRadius) {
 					score += feM4LaneWeight
 				}
 			}

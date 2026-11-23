@@ -250,12 +250,12 @@ func (e *MatchEngine) feM5Candidates(home bool, carrier *MatchPlayer, out *[feM5
 		if pattern == feM5ExploitDepth {
 			first = feM1ToM(e.players[runnerSlot].Position)
 		}
-		if !feM5Separated(link, runner, security) || !e.feM4LaneClear(home, origin, first, feM5LaneRadius) {
+		if !feM5Separated(link, runner, security) || !e.spatialLaneOpen(home, origin, first, feM5LaneRadius) {
 			continue
 		}
 		space := e.feM5Space(home, runner)
 		openness := 0.0
-		if e.feM4LaneClear(home, link, runner, feM5LaneRadius) {
+		if e.spatialLaneOpen(home, link, runner, feM5LaneRadius) {
 			openness = 1.0
 		}
 		var tactical float64
@@ -383,7 +383,7 @@ func (e *MatchEngine) feM5Continue(home bool, side *feM5Side, carrier *MatchPlay
 	}
 	ownFlight := carrier == nil && (e.ball.IsPass && e.ball.PassByHome == home || e.ball.IsShot && e.ball.ShotByHome == home)
 	clear := ep.stage == feM5Exploiting || ownFlight ||
-		e.feM4LaneClear(home, feM1ToM(e.ball.Position), feM1ToM(e.players[targetSlot].Position), feM5LaneRadius)
+		e.spatialLaneOpen(home, feM1ToM(e.ball.Position), feM1ToM(e.players[targetSlot].Position), feM5LaneRadius)
 	if clear {
 		ep.blocked = false
 	} else if !ep.blocked {

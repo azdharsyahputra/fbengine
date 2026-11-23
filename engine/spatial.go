@@ -91,3 +91,43 @@ func (e *MatchEngine) SpatialControl(home bool, p feM1Vec) float64 {
 func (e *MatchEngine) spatialFirstArrival(home bool, p feM1Vec) float64 {
 	return float64(e.spatialGrid().first[hBoolIndex(home)][spatialCellOf(p)])
 }
+
+// spatialLaneBlockers is the one geometric lane definition (Phase 2 / B2):
+// the number of active opponents (keepers included) whose projection falls
+// on the segment from→to and who stand within radius of it (FE metres,
+// world). Consumers set their own tolerance: positioning (M4, M5, M10) wants
+// an empty lane (spatialLaneOpen); M2 rejects a pass only behind two bodies,
+// since its ball-vs-bodies race prices a single one.
+func (e *MatchEngine) spatialLaneBlockers(home bool, from, to feM1Vec, radius float64) int {
+	dx, dy := to.X-from.X, to.Y-from.Y
+	lengthSq := dx*dx + dy*dy
+	n := 0
+	for i := range e.players {
+		o := &e.players[i]
+		if o.IsHomeTeam == home || !active(o) {
+			continue
+		}
+		q := feM1ToM(o.Position)
+		ox, oy := q.X-from.X, q.Y-from.Y
+		var off2 float64
+		if lengthSq < 1.0e-9 {
+			off2 = ox*ox + oy*oy
+		} else {
+			t := (ox*dx + oy*dy) / lengthSq
+			if t < 0.0 || t > 1.0 {
+				continue
+			}
+			ex, ey := ox-t*dx, oy-t*dy
+			off2 = ex*ex + ey*ey
+		}
+		if off2 < radius*radius {
+			n++
+		}
+	}
+	return n
+}
+
+// spatialLaneOpen: no opponent in the lane (positioning).
+func (e *MatchEngine) spatialLaneOpen(home bool, from, to feM1Vec, radius float64) bool {
+	return e.spatialLaneBlockers(home, from, to, radius) == 0
+}

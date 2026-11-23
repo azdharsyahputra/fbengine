@@ -138,7 +138,7 @@ func (e *MatchEngine) feM10SeeksOpen(player, carrier *MatchPlayer, carrierM, t f
 	if (t.X-carrierM.X)*feM1Dir(home) < feM10OpenAhead {
 		return false
 	}
-	return !e.feM4LaneClear(home, carrierM, t, feM10OpenRadius) || e.feM2NearestOpponent(home, t) < feM10OpenSpace
+	return !e.spatialLaneOpen(home, carrierM, t, feM10OpenRadius) || e.feM2NearestOpponent(home, t) < feM10OpenSpace
 }
 
 // Marking distance (ours, M10). Measured on the SkillCorner tracking, the

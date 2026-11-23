@@ -61,8 +61,9 @@ const (
 	// MentalityRiskThresholdShift (TacticalTradeoffs).
 	feM2MentalityRiskShift = 0.08
 
-	// Perception.LaneClear: two opponents within this of the lane make a wall.
-	feM2LaneClearRadius = 2.5
+	// Perception.LaneClear radius: two opponents within this of the lane
+	// make a wall (spatialLaneBlockers).
+	feM2LaneRadius = 2.5
 	// Perception cognitive fatigue (CognitiveFatigueFloor / Steepness).
 	feM2CognitiveFloor     = 0.5
 	feM2CognitiveSteepness = 3.0
@@ -268,39 +269,6 @@ func (e *MatchEngine) feM2ShotBlockers(home bool, p feM1Vec) int {
 		}
 	}
 	return n
-}
-
-// feM2LaneClear is Perception.LaneClear: fewer than two opponents within
-// LaneClearBlockRadius of the carrier→receiver segment.
-func (e *MatchEngine) feM2LaneClear(home bool, from, to feM1Vec) bool {
-	dx, dy := to.X-from.X, to.Y-from.Y
-	len2 := dx*dx + dy*dy
-	blockers := 0
-	for i := range e.players {
-		o := &e.players[i]
-		if o.IsHomeTeam == home || !active(o) {
-			continue
-		}
-		q := feM1ToM(o.Position)
-		var off2 float64
-		if len2 < 1.0e-9 {
-			off2 = (q.X-from.X)*(q.X-from.X) + (q.Y-from.Y)*(q.Y-from.Y)
-		} else {
-			t := ((q.X-from.X)*dx + (q.Y-from.Y)*dy) / len2
-			if t < 0.0 || t > 1.0 {
-				continue
-			}
-			px, py := from.X+dx*t-q.X, from.Y+dy*t-q.Y
-			off2 = px*px + py*py
-		}
-		if off2 < e.cfg.M2.LaneClearRadius*e.cfg.M2.LaneClearRadius {
-			blockers++
-			if blockers >= 2 {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 // feM2Cognitive is FE Perception's cognitive fatigue factor from condition.

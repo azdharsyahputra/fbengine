@@ -67,7 +67,6 @@ type M2Config struct {
 	ThreatPeak        float64 `json:"threat_peak"`         // tp
 	ThreatDecay       float64 `json:"threat_decay"`        // td
 	PassMinimumMargin int     `json:"pass_minimum_margin"` // mm
-	LaneClearRadius   float64 `json:"lane_clear_radius"`   // lr
 	PassMarginBias    float64 `json:"pass_margin_bias"`    // mb
 	LoftedCeiling     float64 `json:"lofted_ceiling"`      // lc
 	CarryPressure     float64 `json:"carry_pressure"`      // cp
@@ -153,7 +152,6 @@ func DefaultConfig() EngineConfig {
 			ThreatPeak:        feM2ThreatPeak,
 			ThreatDecay:       feM2ThreatDecay,
 			PassMinimumMargin: -6,
-			LaneClearRadius:   feM2LaneClearRadius,
 			PassMarginBias:    feM2PassMarginBias,
 			LoftedCeiling:     feM2LoftedCeiling,
 			CarryPressure:     feM2CarryPressurePenalty,
@@ -273,8 +271,6 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			m2.Shield = f != 0
 		case "mm":
 			m2.PassMinimumMargin = int(f)
-		case "lr":
-			m2.LaneClearRadius = f
 		case "mb":
 			m2.PassMarginBias = f
 		case "lc":

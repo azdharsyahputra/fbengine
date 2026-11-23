@@ -84,7 +84,9 @@ func (e *MatchEngine) feM2PassOptions(carrier, skip *MatchPlayer, out []feM2Opti
 		opt := e.evaluatePassOption(carrier, cand)
 		// Ground lane only for a ground pass (ours): a cross or lofted ball
 		// goes over the bodies in between; the race still contests the drop.
-		if !opt.Lofted && !e.feM2LaneClear(home, from, feM1ToM(cand.Position)) {
+		// Phase 2 (B2): the shared lane definition; M2 rejects only a lane
+		// with two bodies in it (FE Perception.LaneClear), the race prices one.
+		if !opt.Lofted && e.spatialLaneBlockers(home, from, feM1ToM(cand.Position), feM2LaneRadius) >= 2 {
 			e.feM2Count(2)
 			continue
 		}

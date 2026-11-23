@@ -9,8 +9,9 @@ import (
 // set) changes this hash and must be deliberate. History: 4c4a29ff… go4 /
 // Phase 1; 56567dbd… Phase 2 added m1.contain_distance (default = go4
 // behaviour, replays unchanged); 85cee7dd… go5: contain_distance 2.0;
-// 83a5d924… go6: loose.contest_gap 0.25 (+ m1.contain_window, loose.* fields).
-const goldenDefaultHash = "83a5d92421ac0ade6e0ef33d05fc0dbe168d251c6bf6093ad41cb38232551e51"
+// 83a5d924… go6: loose.contest_gap 0.25 (+ m1.contain_window, loose.* fields);
+// 9f961677… B2: m2.lane_clear_radius removed (lane is spatialLaneBlockers).
+const goldenDefaultHash = "9f9616778754a9f16c9c3a4b2650e286c325fb606e497983d65679e80bee117e"
 
 func TestDefaultConfigGoldenHash(t *testing.T) {
 	if h := DefaultConfig().Hash(); h != goldenDefaultHash {
@@ -46,7 +47,7 @@ func TestConfigJSONRoundTrip(t *testing.T) {
 // silently skipped malformed pairs, reported unknown keys.
 func TestApplyOverridesLegacySemantics(t *testing.T) {
 	c := DefaultConfig()
-	ignored := ApplyOverrides(&c, "m8", "m1, M3,bogus", "dw=0.5,mm=-10.7,sh=1,mx=0,mc=0.4,zz=3,broken,lr=x", "pf=0.002,rm=4,bn=0.1,qq=1")
+	ignored := ApplyOverrides(&c, "m8", "m1, M3,bogus", "dw=0.5,mm=-10.7,sh=1,mx=0,mc=0.4,zz=3,broken,lc=x", "pf=0.002,rm=4,bn=0.1,qq=1")
 	m := c.Modules
 	if !m.M8Planner || m.M1Defence || m.M3Steering || !m.M2Decision {
 		t.Fatalf("modules %+v", m)
@@ -54,7 +55,7 @@ func TestApplyOverridesLegacySemantics(t *testing.T) {
 	if c.M2.DuelLoss != 0.5 || c.M2.PassMinimumMargin != -10 || !c.M2.Shield || c.M8.ExpandCarry || c.M8.Confidence != 0.4 {
 		t.Fatalf("m2/m8 %+v %+v", c.M2, c.M8)
 	}
-	if c.M2.LaneClearRadius != DefaultConfig().M2.LaneClearRadius {
+	if c.M2.LoftedCeiling != DefaultConfig().M2.LoftedCeiling {
 		t.Fatal("non-numeric value must be skipped")
 	}
 	if c.M10.ProgressFinal != 0.002 || c.M10.RetreatMid != 4 || c.M10.BlockLength != 0.1 {
