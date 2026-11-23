@@ -55,6 +55,9 @@ type auditState struct {
 	// shots by source, distance, xG and previous shot gap
 	shots    map[string]int
 	lastShot float64
+	shotKey  string
+	// the next commitFoul comes from an aerial duel
+	aerialFoul bool
 	nearAtt  int
 	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
 	sprintStart                    map[string]int
@@ -1203,6 +1206,15 @@ func (e *MatchEngine) auditFoul(offender *MatchPlayer, ballWon, reckless bool, s
 		kind += "+reckless"
 	}
 	a.fouls["kind "+kind]++
+	src := "ground"
+	if a.aerialFoul {
+		src = "aerial"
+	}
+	a.aerialFoul = false
+	if inPenaltyArea(e.ball.Position, offender.IsHomeTeam) { // the offender's own box: a penalty
+		a.fouls["inbox "+src]++
+	}
+	a.fouls["src "+src]++
 	a.fouls[fmt.Sprintf("sanction %d", sanction)]++
 	if dogso {
 		a.fouls["dogso"]++
@@ -1473,6 +1485,17 @@ func (e *MatchEngine) auditShot(shooter *MatchPlayer, xg float64, header, setPie
 	}
 	a.lastShot = now
 	a.shots["src "+src]++
+	a.shotKey = xb
+	if header {
+		a.shotKey = "head " + xb
+	} else if penalty {
+		a.shotKey = "pen"
+	}
+	a.shots["n "+a.shotKey]++
+	a.shots["xgk "+a.shotKey] += int(xg * 1000)
+	if e.ball.ShotOnTarget {
+		a.shots["on "+a.shotKey]++
+	}
 	a.shots[db]++
 	a.shots[xb]++
 	a.shots["all"]++
@@ -1494,4 +1517,17 @@ func (e *MatchEngine) auditShotReport(w io.Writer) {
 		fmt.Fprintf(w, " %s %d |", k, a.shots[k])
 	}
 	fmt.Fprintln(w)
+}
+
+// auditGoal attributes a goal to the last shot's xG bin (audit only).
+func (e *MatchEngine) auditGoal() {
+	if !e.diag.Audit || e.audit.shots == nil {
+		return
+	}
+	a := &e.audit
+	if e.ball.IsShot && e.getSimulatedSeconds()-a.lastShot < 8 {
+		a.shots["goal "+a.shotKey]++
+	} else {
+		a.shots["goal noshot"]++
+	}
 }

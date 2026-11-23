@@ -153,6 +153,7 @@ func (e *MatchEngine) checkOutOfBounds() {
 }
 
 func (e *MatchEngine) scoreGoal(homeTeam bool) {
+	e.auditGoal()
 	last := e.findMatchPlayer(e.ball.LastPossessor)
 	shooter := e.findMatchPlayer(e.lastShooter)
 	scorer := last

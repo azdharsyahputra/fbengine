@@ -198,3 +198,29 @@ Serangan sudah realistis; engine menembak 2× lebih sering per serangan.
 `ss=0.6` ditolak: recvPress jebol (38) untuk kedua kalinya di nilai `ss` rendah.
 
 **Temuan utama:** gol tidak bergerak saat tembakan dipangkas 35%. Di `ss=0.6` xG 3.33 tetapi gol 4.5: engine mengonversi ~35% di atas xG-nya sendiri. Akar gol ada di fisika penyelesaian/kiper (konversi aktual vs `estimateShotXG`), bukan volume tembakan. Langkah berikutnya: bandingkan gol aktual per bin xG.
+
+## Ronde 9: konversi dan penalti
+
+**Koreksi ronde 8:** probe gol per bin xG (10 seed, default `ss=0.8`) menunjukkan gol hanya ~11% di atas xG engine (44 gol dari tembakan vs xG 39.7). Angka "35%" berasal dari varian `ss=0.6`, bukan default.
+
+| Bin | Tembakan (10 laga) | Konversi | Gol / xG |
+|---|---|---|---|
+| Penalti | 12 | 92% | 1.18 |
+| Open play xG 0.05–0.10 | 78 | 10.3% | 1.41 |
+| Open play xG 0.10–0.30 | 60 | 18.3% | 1.09 |
+| Sundulan xG 0.10–0.30 | 61 | 14.8% | 1.20 |
+| Open play xG <0.03 | 132 | 0.8% | 0.45 |
+
+**Akar sebenarnya: penalti 1.2 per laga** (EPL ~0.26), menyumbang ~1.1 gol per laga. Probe foul: 1.4 foul per laga di kotak sendiri, semuanya tekel di darat (duel udara 0). Porsi foul di kotak 3% (asli ~1.4%).
+
+**Perubahan:** `M6.BoxFoulScale` (kunci `bx`), faktor foul tekel di kotak sendiri 0.13 (Player12) → **0.03**.
+
+| 10 seed | Penalti/laga | Gol/laga | xG/laga | Skor | Lolos | Penjaga bentuk |
+|---|---|---|---|---|---|---|
+| `bx=0.13` | 1.20 | 4.6 | 3.97 | 0.779 | 101 | 2/6 |
+| `bx=0.06` | 0.50 | 3.5 | 3.52 | 0.770 | 102 | 2/6 |
+| **`bx=0.03` (default)** | 0.40 | **3.4** | 3.45 | **0.768** | 102 | 2/6 |
+
+Gol sekarang di dalam ±20% EPL (3.28).
+
+**Sisa statistik:** tembakan ~19 per tim (EPL ~13), foul ~23 per tim (10.5), kartu merah 1.3 per laga (0.15), corner ~8 per tim (5.3).

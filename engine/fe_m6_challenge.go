@@ -331,6 +331,7 @@ func (e *MatchEngine) feResolveChallenge(carrier, defender *MatchPlayer, c *feCh
 	context.Sliding = c.sliding
 	context.FromBehind = fromBehind
 	context.InPenaltyArea = inPenaltyArea(carrier.Position, defender.IsHomeTeam)
+	context.AreaFoulScale = e.cfg.M6.BoxFoulScale
 	context.DefenderBooked = defender.YellowCards > 0
 	foulPropensity := MatchRules_tackleFoulPropensity(context)
 

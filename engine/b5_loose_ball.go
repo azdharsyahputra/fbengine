@@ -432,6 +432,7 @@ func (e *MatchEngine) resolveAerialContest() bool {
 				e.clearFlightState()
 				e.ball.Velocity = Vector2F{0.0, 0.0}
 				e.ball.VelocityZ = 0.0
+				e.audit.aerialFoul = e.diag.Audit
 				if attackerFouls {
 					e.commitFoul(attacker, defender, true, false)
 				} else {

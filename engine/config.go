@@ -160,6 +160,9 @@ type M6Config struct {
 	// him (Player12 1.6). Metrica: ~73% of shots pass within 1.6 m of a
 	// defender, yet only ~6% (Opta EPL ~25%) are blocked.
 	BlockReach float64 `json:"block_reach"` // br
+	// BoxFoulScale: a challenge's foul propensity inside the defender's own
+	// penalty area (Player12 0.13). EPL: ~0.26 penalties a match.
+	BoxFoulScale float64 `json:"box_foul_scale"` // bx
 }
 
 // M3Config is movement execution (Phase 2).
@@ -362,7 +365,7 @@ func DefaultConfig() EngineConfig {
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
 		M3: M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
-		M6: M6Config{SlideDepth: 35, BlockReach: 0.7},
+		M6: M6Config{SlideDepth: 35, BlockReach: 0.7, BoxFoulScale: 0.03},
 		TeamShape: TeamShapeConfig{RunQuota: 2, OverlapQuota: 1, BoxQuota: 2, PressQuota: 1,
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
@@ -501,6 +504,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.M6.SlideDepth = f
 			case "br":
 				c.M6.BlockReach = f
+			case "bx":
+				c.M6.BoxFoulScale = f
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":

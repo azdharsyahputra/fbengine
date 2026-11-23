@@ -286,6 +286,9 @@ type TackleContext struct {
 	FromBehind     bool
 	InPenaltyArea  bool
 	DefenderBooked bool
+	// AreaFoulScale (ours): the foul propensity scale inside the own penalty
+	// area; 0 = Defending_PENALTY_AREA_FOUL_SCALE.
+	AreaFoulScale float64
 }
 
 // NewTackleContext returns a TackleContext with the C++ default member
@@ -336,6 +339,9 @@ func MatchRules_tackleFoulPropensity(context TackleContext) float64 {
 	area := 1.0
 	if context.InPenaltyArea {
 		area = Defending_PENALTY_AREA_FOUL_SCALE
+		if context.AreaFoulScale > 0 {
+			area = context.AreaFoulScale
+		}
 	}
 	behind := 1.0
 	if context.FromBehind {

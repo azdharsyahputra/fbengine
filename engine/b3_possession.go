@@ -266,6 +266,7 @@ func (e *MatchEngine) attemptTackle(carrier *MatchPlayer, defender *MatchPlayer,
 	context.Sliding = sliding
 	context.FromBehind = fromBehind
 	context.InPenaltyArea = inPenaltyArea(carrier.Position, defender.IsHomeTeam)
+	context.AreaFoulScale = e.cfg.M6.BoxFoulScale
 	context.DefenderBooked = defender.YellowCards > 0
 	winChance := MatchRules_tackleWinChance(context)
 	foulPropensity := MatchRules_tackleFoulPropensity(context)
