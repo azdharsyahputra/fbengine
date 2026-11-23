@@ -823,7 +823,9 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 		e.feM1Assign()
 	}
 	// F2: the Team Shape Controller + composer own live-play targets.
-	if e.cfg.Modules.TeamShape && e.state == MatchState_PLAYING && e.setPiecePhaseRemaining <= 0 {
+	// (also in the set-piece phase: its delivery and arrangement keep their legacy
+	// targets through teamShapeClass, everyone else is composed)
+	if e.cfg.Modules.TeamShape && e.state == MatchState_PLAYING {
 		e.teamShapeCompose()
 	} else {
 		for i := range e.players {

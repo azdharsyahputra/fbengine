@@ -130,6 +130,24 @@ Ketiganya tetap di kode: perlu bersama pressing trigger, dan murah.
 
 Sisa penjaga bentuk yang besar: chase≥3 (23) dan bola liar ≥5 (27).
 
+## Putaran 4 (2026-11-24): bola liar dan chase (10 seed)
+
+- **Composer tidak jalan selama fase bola mati.** `setPiecePhaseRemaining` baru habis setelah tim bertahan mendapat bola, jadi setelah sepak pojok atau tendangan bebas seluruh tim kembali ke logika P12 lama dan mengerumuni bola. Sekarang composer jalan juga di fase itu. Pengatur bola mati (aerial-hold, restart) tetap di job lamanya.
+- **Bola benar-benar liar** (tanpa pemegang, bukan umpan): penanda tidak ikut orangnya; perebutan diurus resolver.
+- **Intent rebut/tekan** dihitung job bola hanya untuk perebut dan penekan resmi. Tidak ada efek terukur, tapi tetap dipakai karena aturannya lebih tepat.
+
+| | F2b | F2c | Asli |
+|---|---|---|---|
+| Skor | 0.907 | **0.852** | — |
+| Lolos | 93/135 | **95/135** | — |
+| Probe bola liar ≥5 | 18.9 | **11.3** | — |
+| cek bola liar ≥5 | 27 | 25 | 6–10.5 |
+| chase≥3 | 23 | 23 | 5–10 |
+| Gol | 3.5 | **2.5** | — |
+| Penyerang bebas di kotak | 24 | 39 | — |
+
+**Syarat penanda dari sisi gawang** (`mark_behind` 3) dites lagi: gol 5.1. Tetap mati (99).
+
 ## Berikutnya
 
 1. **Pembedahan pelari di momen chase dan bola liar** dalam mode native, lalu aturan composer siapa dan berapa orang yang boleh menuju bola.

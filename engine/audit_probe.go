@@ -262,7 +262,7 @@ func (e *MatchEngine) auditStep() {
 			if e.lastControlledTeamHome.HasValue && e.lastControlledTeamHome.Value == p.IsHomeTeam {
 				side = "last-control"
 			}
-			a.addLayer("LOOSE-RUNNER " + side + " intent=" + auditIntent(p.Intent))
+			a.addLayer("LOOSE-RUNNER " + side + " " + p.TargetOwner.String() + ":" + p.TargetReason.String())
 			return true
 		}))
 		a.looseClaim = append(a.looseClaim, count(func(p *MatchPlayer) bool {

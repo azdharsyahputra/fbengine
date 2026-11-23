@@ -25,8 +25,17 @@ import (
 // marking, so it is an offset, not the slot).
 func teamShapeClass(p *MatchPlayer, danger bool) (class composeClass, quota composeQuotaKind, slot bool, ok bool) {
 	switch p.Intent {
-	case PlayerIntent_CARRY_BALL, PlayerIntent_RECEIVE_PASS, PlayerIntent_CLAIM_LOOSE_BALL, PlayerIntent_PRESS_BALL:
+	case PlayerIntent_CARRY_BALL, PlayerIntent_RECEIVE_PASS:
 		return composeBall, 0, false, true
+	case PlayerIntent_CLAIM_LOOSE_BALL, PlayerIntent_PRESS_BALL:
+		// only the resolver's claimer and the designated pressers/interceptors contest the
+		// ball; a supporter who also "goes for it" (P12 transition support) keeps his job
+		// class below, so a loose ball does not draw a crowd
+		switch p.TargetReason {
+		case TargetReason_LOOSE_CLAIM, TargetReason_PRESS, TargetReason_M1_FIRST_DEFENDER,
+			TargetReason_M1_CONTAIN, TargetReason_M1_SHAPE, TargetReason_RECEIVE, TargetReason_CARRY:
+			return composeBall, 0, false, true
+		}
 	}
 	switch p.TargetReason {
 	case TargetReason_GK, TargetReason_AERIAL_HOLD, TargetReason_RESTART, TargetReason_HALF_TIME_WALK, TargetReason_SHOOTOUT:
@@ -396,8 +405,11 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 	}
 	// 2. ball-oriented marking: a goal-side marker for each attacker near the ball (and,
 	// with the ball near the goal, for each attacker in the danger zone), taken by the
-	// slot-holder nearest him; the zone (slot) keeps everyone else
-	{
+	// slot-holder nearest him; the zone (slot) keeps everyone else. A truly loose ball
+	// (no carrier, no pass) is the loose-ball contest's: markers do not follow their men
+	// into it, the block holds.
+	loose := e.findMatchPlayer(e.ball.PossessedBy) == nil && !e.ball.IsPass && !e.ball.IsShot
+	if !loose || ub < ts.DangerDepth {
 		type att struct {
 			i      int
 			d      float64
@@ -424,8 +436,15 @@ func (e *MatchEngine) teamShapeDefence(home bool, slots [][2]float64, ok []bool)
 		for _, a := range atts {
 			op := pm(&e.players[a.i])
 			mark := toward(op, goal, ts.MarkGoalSide)
+			au, _ := fr.toFrame(op[0], op[1])
 			best, bd := -1, ts.MarkRadius
 			defenders(func(i int, p *MatchPlayer) bool {
+				// the marker comes from goal-side of the man (a bypassed player does not
+				// run back to mark: he would be chasing the play)
+				pp := pm(p)
+				if pu, _ := fr.toFrame(pp[0], pp[1]); pu > au+ts.MarkBehind {
+					return true
+				}
 				if d := math.Hypot(slots[i][0]-op[0], slots[i][1]-op[1]); d < bd {
 					best, bd = i, d
 				}
