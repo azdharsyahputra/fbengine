@@ -383,6 +383,7 @@ func (e *MatchEngine) commitFoul(offender *MatchPlayer, victim *MatchPlayer, bal
 	context.OffenderIsAway = !offender.IsHomeTeam
 	context.VenueBiasScale = e.matchContext.HomeAdvantageScale
 	sanction := MatchRules_decideFoulSanction(context)
+	e.auditFoul(offender, ballWon, reckless, sanction, context.DenyingGoalChance, context.Tactical)
 
 	foulEvent := e.logEventActor(MatchEventType_FOUL, offender)
 	foulEvent.SecondaryPlayerId = 0

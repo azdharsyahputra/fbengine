@@ -167,6 +167,10 @@ func (e *MatchEngine) feChallengeKind(carrier, defender *MatchPlayer) (sliding b
 	// A ball moving away can only be reached by going to ground.
 	escaping := toBall.X*e.ball.Velocity.X+toBall.Y*e.ball.Velocity.Y > 0.0
 	recovering := engaging && !feGoalSide(defender, carrier)
+	if recovering && !forced && e.cfg.M6.SlideDepth > 0 &&
+		math.Abs(carrier.Position.X-feOwnGoalX(defender))*Pitch_LENGTH_METRES > e.cfg.M6.SlideDepth {
+		recovering = false // ours: away from goal a recovering defender keeps chasing
+	}
 	if ((recovering && escaping) || forced) && d <= slideReach &&
 		(through || !e.feShielded(carrier, defender, feSlidingPreparation)) {
 		return true, true
@@ -340,6 +344,7 @@ func (e *MatchEngine) feResolveChallenge(carrier, defender *MatchPlayer, c *feCh
 			share *= feSlowBallFirstFoulShare
 		}
 		if e.incidentRoll() < foulPropensity*share {
+			e.auditChallenge(defender, c.sliding, "met-foul")
 			e.commitFoul(defender, carrier, true, c.sliding && fromBehind)
 			return
 		}
@@ -348,9 +353,11 @@ func (e *MatchEngine) feResolveChallenge(carrier, defender *MatchPlayer, c *feCh
 		won := hClamp(feWinBase+feWinGain*MatchRules_tackleWinChance(context)/Defending_MAX_WIN_CHANCE,
 			feWinFloor, feWinCeiling)
 		if e.randomFloat(0.0, 1.0) >= won {
+			e.auditChallenge(defender, c.sliding, "met-rode")
 			e.feTackleCooldown(defender)
 			return
 		}
+		e.auditChallenge(defender, c.sliding, "met-won")
 		if defender.IsHomeTeam {
 			e.stats.HomeTackles++
 		} else {
@@ -390,6 +397,7 @@ func (e *MatchEngine) feResolveChallenge(carrier, defender *MatchPlayer, c *feCh
 	}
 
 	// Missed the ball; a boot on the carrier's legs is a trip.
+	e.auditChallenge(defender, c.sliding, "missed")
 	if legGap <= feBootLegContact && e.incidentRoll() < foulPropensity {
 		reckless := length(defender.Velocity) >= feRecklessSpeed || (c.sliding && fromBehind)
 		e.commitFoul(defender, carrier, false, reckless)

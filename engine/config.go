@@ -145,6 +145,15 @@ type PressConfig struct {
 	Effort float64 `json:"effort"` // pe
 }
 
+// M6Config is the challenge (tackle) layer.
+type M6Config struct {
+	// SlideDepth: a recovering defender (not goal-side, ball running away)
+	// goes to ground only while the carrier is within this many metres of
+	// the defender's own goal; elsewhere he keeps chasing for a standing
+	// tackle. 0 = no gate (slides anywhere, go16/F2c).
+	SlideDepth float64 `json:"slide_depth"` // gz
+}
+
 // M3Config is movement execution (Phase 2).
 type M3Config struct {
 	// CatchUpShare: share of top speed (0 off) at which a settled supporter /
@@ -208,6 +217,7 @@ type EngineConfig struct {
 	Press   PressConfig  `json:"press"`
 	M2      M2Config     `json:"m2"`
 	M3      M3Config     `json:"m3"`
+	M6      M6Config     `json:"m6"`
 	M8      M8Config     `json:"m8"`
 	M10     M10Config    `json:"m10"`
 	// TeamShape: the composer's rules (team_shape_compose.go).
@@ -335,6 +345,7 @@ func DefaultConfig() EngineConfig {
 		// go12: settled supporters catch up with the attack at 0.6 of top speed
 		// (go11: 0 → the pivot trailed a final-third attack by ~29 m).
 		M3: M3Config{CatchUpShare: 0.6, CatchUpDistance: 8, CatchUpRun: true},
+		M6: M6Config{SlideDepth: 35},
 		TeamShape: TeamShapeConfig{RunQuota: 2, OverlapQuota: 1, BoxQuota: 2, PressQuota: 1,
 			MinSpacing: 8, SupportDev: 10, CoverDev: 8, DutyDev: 10,
 			WalkSpeed: 1.6, JogSpeed: 3.2, RunSpeed: 5.5, JogDistance: 4, RunDistance: 12, CloseTime: 2.5,
@@ -465,6 +476,8 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 				c.TeamShape.MarkBehind = f
 			case "sq":
 				c.TeamShape.SpeedTable = f != 0
+			case "gz":
+				c.M6.SlideDepth = f
 			case "cr":
 				c.M3.CatchUpRun = f != 0
 			case "rc":

@@ -44,6 +44,8 @@ type auditState struct {
 	// player-steps above 4 m/s by side and owner:reason, and all player-steps
 	fast    map[string]int
 	fastAll int
+	// fouls by kind (ball won / missed, reckless, sanction, offender job)
+	fouls map[string]int
 	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
 	sprintStart                    map[string]int
 	sprints, targetJumps, jobJumps int
@@ -403,6 +405,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditChaseReport(w)
 	e.auditPivotReport(w)
 	e.auditCarryReport(w)
+	e.auditFoulReport(w)
 	if len(e.audit.fast) > 0 {
 		type kv struct {
 			k string
@@ -1167,4 +1170,69 @@ func (e *MatchEngine) auditFullBackReport(w io.Writer) {
 		fmt.Fprintf(w, " %s %.0f |", k, v[len(v)/2])
 	}
 	fmt.Fprintln(w)
+}
+
+// auditFoul records one foul (audit only).
+func (e *MatchEngine) auditFoul(offender *MatchPlayer, ballWon, reckless bool, sanction FoulSanction, dogso, tactical bool) {
+	if !e.diag.Audit {
+		return
+	}
+	a := &e.audit
+	if a.fouls == nil {
+		a.fouls = map[string]int{}
+	}
+	kind := "missed"
+	if ballWon {
+		kind = "ballwon"
+	}
+	if reckless {
+		kind += "+reckless"
+	}
+	a.fouls["kind "+kind]++
+	a.fouls[fmt.Sprintf("sanction %d", sanction)]++
+	if dogso {
+		a.fouls["dogso"]++
+	}
+	if tactical {
+		a.fouls["tactical"]++
+	}
+	a.fouls["job "+offender.TargetOwner.String()+":"+offender.TargetReason.String()]++
+	a.fouls["speed "+fmt.Sprintf("%.0f", math.Min(math.Hypot(offender.Velocity.X*Pitch_LENGTH_METRES, offender.Velocity.Y*Pitch_WIDTH_METRES), 8))]++
+	a.fouls["all"]++
+}
+
+func (e *MatchEngine) auditFoulReport(w io.Writer) {
+	if len(e.audit.fouls) == 0 {
+		return
+	}
+	var ks []string
+	for k := range e.audit.fouls {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	fmt.Fprintf(w, "AUDIT fouls: tackle attempts %d/%d won %d/%d |", e.stats.HomeTackleAttempts, e.stats.AwayTackleAttempts, e.stats.HomeTackles, e.stats.AwayTackles)
+	for _, k := range ks {
+		fmt.Fprintf(w, " %s %d |", k, e.audit.fouls[k])
+	}
+	fmt.Fprintln(w)
+}
+
+// auditChallenge records one resolved M6 challenge (audit only).
+func (e *MatchEngine) auditChallenge(defender *MatchPlayer, sliding bool, outcome string) {
+	if !e.diag.Audit {
+		return
+	}
+	a := &e.audit
+	if a.fouls == nil {
+		a.fouls = map[string]int{}
+	}
+	k := "standing"
+	if sliding {
+		k = "sliding"
+	}
+	a.fouls["chal "+outcome]++
+	a.fouls["chal "+k]++
+	a.fouls["chal "+k+" "+outcome]++
+	a.fouls[fmt.Sprintf("chal intent %d", defender.Intent)]++
+	a.fouls["chal all"]++
 }
