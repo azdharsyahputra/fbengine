@@ -178,6 +178,14 @@ type M10Config struct {
 	// ahead of the ball, in the touchline lane, onside, when the ball is on
 	// his flank (0: his shape spot + 18 m, go4-go14; go15 6).
 	OverlapLead float64 `json:"overlap_lead"` // ol
+	// PossessionStep: with the ball, the holders' block moves up by this
+	// share of the ball's progress past a quarter of the pitch (Player12
+	// Shape_POSSESSION_BLOCK_PROGRESS 0.24, go4-go15; go16 1.6).
+	PossessionStep float64 `json:"possession_step"` // ps
+	// PossessionStepMax: at most this many metres of that step (0: no cap,
+	// go4-go15; go16 30), so the back line joins the circulation in midfield without
+	// standing at the halfway line when the ball is in the final third.
+	PossessionStepMax float64 `json:"possession_step_max"` // pq
 	// FullBackTrail: in the opponent half the ball-side full-back on shape
 	// duty is at most this far (m) behind the ball (12: go4-go14).
 	FullBackTrail float64 `json:"full_back_trail"` // ft (go15 2)
@@ -259,6 +267,9 @@ func DefaultConfig() EngineConfig {
 			// ball side level with the ball, weak side 12 m behind; an overlap
 			// goes 6 m past the ball.
 			FullBackTrail: 2.0, FullBackWeak: 12.0, FullBackStart: -20.0, OverlapLead: 6.0,
+			// go16: the holders' block steps up with the ball (1.6 of its
+			// progress past a quarter, at most 30 m; P12 0.24 uncapped).
+			PossessionStep: 1.6, PossessionStepMax: 30,
 		},
 	}
 }
@@ -439,6 +450,10 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			m.RetreatMid = f
 		case "ol":
 			m.OverlapLead = f
+		case "ps":
+			m.PossessionStep = f
+		case "pq":
+			m.PossessionStepMax = f
 		case "ft":
 			m.FullBackTrail = f
 		case "fw":

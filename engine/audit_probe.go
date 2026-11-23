@@ -1003,8 +1003,13 @@ func (e *MatchEngine) auditFullBackAttack(carrier *MatchPlayer) {
 		if !active(q) || q.IsHomeTeam != carrier.IsHomeTeam || q.Player == nil || q == carrier {
 			continue
 		}
-		if r := roleShortKeys[q.Player.GetRole()]; r != "ROLE_SHORT_LB" && r != "ROLE_SHORT_RB" {
+		rk := roleShortKeys[q.Player.GetRole()]
+		if rk != "ROLE_SHORT_LB" && rk != "ROLE_SHORT_RB" && rk != "ROLE_SHORT_CB" {
 			continue
+		}
+		cbTag := ""
+		if rk == "ROLE_SHORT_CB" {
+			cbTag = "CB "
 		}
 		f.n++
 		k := q.TargetOwner.String() + ":" + q.TargetReason.String()
@@ -1015,7 +1020,7 @@ func (e *MatchEngine) auditFullBackAttack(carrier *MatchPlayer) {
 		if feM1ToM(q.BasePosition).Y*feM1ToM(carrier.Position).Y > 0 {
 			bs = " ball"
 		}
-		k = zone + k + bs
+		k = zone + cbTag + k + bs
 		f.why[k]++
 		f.depth = append(f.depth, ball-feM1ToM(q.Position).X*dir)
 		if f.lag == nil {

@@ -2,6 +2,49 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go16: who receives in midfield (2026-11-23, partial)
+
+From go15's open point. Ball-holding metrics read from the replay are camera-proof against real data, because the holder is always at the ball.
+
+- **Gap versus real (go15, middle third):**
+  - **Receptions:**
+
+    | | AM | ST | DM | FB | CB |
+    |---|---|---|---|---|---|
+    | go15 | 56% | 16% | 16% | 11% | 1% |
+    | Real | 22–31% | 3–6% | 27–31% | 16–23% | 15–22% |
+
+  - **Holding time:** CB 11% (real 19–24%), AM 43% (real 23–33%).
+- **Cause:** with a DM on the ball in midfield, the support behind him trailed far more than in real football:
+
+  | Option for a midfield DM holder | go15 | Real |
+  |---|---|---|
+  | CB | 16 m behind | 7–9 m behind |
+  | FB | 10 m behind | 3–6 m ahead |
+  | Other DM | 8 m behind | about level |
+
+  So the forward AM was nearly always the best option. The holders' block stepped up with the ball by only 0.24 of its progress (P12 `Shape_POSSESSION_BLOCK_PROGRESS`).
+- **Change:** `m10.possession_step` 1.6, capped by `m10.possession_step_max` 30 m. The cap keeps the CBs from standing at halfway with the ball in the final third.
+- **Result (10 seeds vs go15):**
+
+  | | go15 | go16 | Real |
+  |---|---|---|---|
+  | Midfield receptions AM / FB / CB | 56 / 11 / 1% | 49 / 17 / 6% | 22–31 / 16–23 / 15–22% |
+  | Holding FB / AM | 18 / 43% | 24 / 38% | 16–20 / 23–33% |
+  | DM–AM | 12.9 m | 11.7 m | 8.6 m |
+  | Midfield backward passes | 25% | 21% | 24–27% |
+  | Fouls per side | 20 | 17.5 | ~10 |
+
+  Other metrics stay within seed noise.
+- **Tried, not kept:**
+  - Ball-near marking (no change in receptions or reception pressure).
+  - `m2.progress_mid` 0 (no change).
+  - `m2.receiver_loss` 1.0: fewer AM receptions, but receivers got freer (pressure 21 → 17%), possession longer (11.1 s) and carries ≥25 m rose again.
+- **Still open:**
+  - Forward options are freer than real: markers 5.1–5.8 m from the AM (real 4.1–4.5) and 4.2–5 m from the ST (real 2.8–3.7).
+  - The second DM trails the holder by 7–8 m. Real data may label central midfielders as DM.
+- **Reproduce go15:** `FMENGINE_M10=ps=0.24,pq=0`.
+
 ## go15: attacking full-backs (2026-11-23, partial)
 
 From the go11 critique, problem 4. New probe lines: `AUDIT attacking full-backs`, with owner:reason per zone and flank, target and position versus the ball, and forward speed.

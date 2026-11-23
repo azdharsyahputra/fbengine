@@ -298,9 +298,14 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 			if !player.IsHomeTeam {
 				attackingProgress = 1.0 - carrier.Position.X
 			}
-			target.X += attackDirection *
-				math.Max(0.0, attackingProgress-Shape_POSSESSION_PROGRESS_START) *
-				Shape_POSSESSION_BLOCK_PROGRESS
+			if most := e.cfg.M10.PossessionStepMax; most > 0 {
+				target.X += attackDirection * math.Min(most/Pitch_LENGTH_METRES,
+					math.Max(0.0, attackingProgress-Shape_POSSESSION_PROGRESS_START)*e.cfg.M10.PossessionStep)
+			} else {
+				target.X += attackDirection *
+					math.Max(0.0, attackingProgress-Shape_POSSESSION_PROGRESS_START) *
+					e.cfg.M10.PossessionStep
+			}
 			target.X += attackDirection * (Shape_SUPPORT_BASE_ADVANCE +
 				sliders.OffensiveBias*Shape_SUPPORT_OFFENSIVE_ADVANCE)
 			role := player.Player.GetRole()
