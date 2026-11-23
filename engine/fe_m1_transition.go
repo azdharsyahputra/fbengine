@@ -198,12 +198,15 @@ func (e *MatchEngine) feM1Begin(carrier *MatchPlayer) {
 				side.vel = carrier.Velocity
 				side.carrierSlot = e.slotOf(carrier)
 			}
-		} else if e.ball.IsPass && !e.ball.IsAerialDelivery && !e.ball.IsShot &&
+		} else if e.ball.IsPass && !e.ball.IsShot &&
+			(!e.ball.IsAerialDelivery || e.lastPassDecision.Intent != PassIntent_SET_PIECE) &&
 			e.ball.PassByHome != home && e.lastControlledTeamHome.HasValue &&
 			e.lastControlledTeamHome.Value != home {
-			// Go adaptation: during the opponent's ground pass the tasks are
-			// kept, anchored on the intended receiver (FE keeps them through
-			// Receiving control).
+			// Go adaptation: during the opponent's pass the tasks are kept,
+			// anchored on the intended receiver (FE keeps them through
+			// Receiving control). Phase 2 (A3): open-play crosses too, so M1
+			// owns every defending phase except set-piece deliveries (M9's
+			// arrangement) and the loose-ball contest (loose_ball.go).
 			side.owns = true
 			side.ball = ball
 			side.vel = e.ball.Velocity

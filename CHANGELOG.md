@@ -2,6 +2,19 @@
 
 Each entry names the config hash. A replay's `meta.config_hash` says which engine behaviour produced it.
 
+## go7: Phase 2, item A (decision ownership) (2026-11-23)
+
+Config `83a5d924…` (unchanged; code-level).
+
+- **A2:** `TargetReason` and `TargetRefiner` are recorded at every target writer.
+- **A1:** single-owner attack composition (`compose_attack.go`).
+  - M5 duties are final.
+  - One structure rule per role.
+  - M4 refine is the only spacing step, with getting-open folded in.
+- **A3:** M1 owns open-play crosses. Engagers mark the receiver goal-side.
+- The full matrix is in `docs/OWNERSHIP.md`.
+- **Result (10 seeds):** chase≥3 7.9, loose≥5 8.8, box free 16.2%, DM–AM 17.7. Ping-pong 15.1 and fouls 21 are within seed noise of go6.
+
 ## go6: Phase 2, step 2 (2026-11-23)
 
 Config `83a5d924…`.

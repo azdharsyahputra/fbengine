@@ -772,6 +772,16 @@ func (e *MatchEngine) feM1Apply(home bool, side *feM1Side, s *feM1State) {
 		default:
 			target = p.TacticalTarget
 		}
+		if side.inFlight && e.ball.IsAerialDelivery {
+			switch task.role {
+			case feM1RoleFirstDefender, feM1RoleContain, feM1RoleIntercept:
+				// Phase 2 (A3): against an open-play cross the engagers mark
+				// the receiver goal-side at marking pace instead of sprinting
+				// at him or the flight; the aerial contest decides the ball.
+				intent, pressing, urgent, direct = PlayerIntent_MARK_OPPONENT, false, false, false
+				effort = feM1ScreenEffort
+			}
+		}
 		if task.role == feM1RoleRecoverShape {
 			// P12's tight-mark order (P12:3084-3090) overrides the retreat.
 			if tight := e.tightMarkTarget(p); tight != nil {
