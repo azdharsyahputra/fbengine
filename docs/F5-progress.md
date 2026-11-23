@@ -172,3 +172,29 @@ Pemilihan tembakan sudah realistis. Yang terlalu mudah adalah fisika blok: bek s
 Penjaga bentuk sama (2/6). Scramble setelah blok berkurang, corner turun.
 
 **Konsekuensi:** gol 4.6 per laga, di atas batas +20% (3.94); tepat sasaran 6.4 per tim (EPL ~4.5). Berikutnya: kualitas/xG tembakan dan kiper. Tembakan masih ~23 per tim (EPL ~13).
+
+## Ronde 8: gol (volume vs konversi)
+
+**Ukur** (default `br=0.7`, 10 seed, per laga): 51 tembakan (EPL ~26), tepat sasaran 12.8 (~9), gol 4.6 (3.28). Save% kiper 65% (asli ~64–67%), gol per tembakan 0.090 (asli ~0.126).
+
+`viz/attacks.js` (penguasaan bola per laga):
+
+| | Metrica | Engine |
+|---|---|---|
+| Penguasaan yang masuk sepertiga akhir | 138.5 | 136.8 |
+| Penguasaan yang masuk kotak (bola dikuasai) | 32.0 | 33.6 |
+| Tembakan | 24 | 51 |
+
+Serangan sudah realistis; engine menembak 2× lebih sering per serangan.
+
+**Perubahan:** `M2.ShotValueScale` 1.2 → **0.8**.
+
+| 10 seed | Tembakan/tim | Tepat sasaran/tim | xG/laga | Gol | Skor | Penjaga bentuk |
+|---|---|---|---|---|---|---|
+| `ss=1.2` | 23.1 | 6.4 | 4.25 | 4.6 | 0.763 | 2/6 |
+| **`ss=0.8` (default)** | 18.3 | 5.7 | 3.97 | 4.6 | 0.779 | 2/6 |
+| `ss=0.6` | 14.9 | 4.5 | 3.33 | 4.5 | 0.764 | 1/6 (recvPress 38) |
+
+`ss=0.6` ditolak: recvPress jebol (38) untuk kedua kalinya di nilai `ss` rendah.
+
+**Temuan utama:** gol tidak bergerak saat tembakan dipangkas 35%. Di `ss=0.6` xG 3.33 tetapi gol 4.5: engine mengonversi ~35% di atas xG-nya sendiri. Akar gol ada di fisika penyelesaian/kiper (konversi aktual vs `estimateShotXG`), bukan volume tembakan. Langkah berikutnya: bandingkan gol aktual per bin xG.
