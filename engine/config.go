@@ -80,6 +80,24 @@ type M1Config struct {
 	// holds (jockeying); the M6 challenge decides when he steps in. go4 used
 	// the press point (FE ApproachOffset 0.75 m), i.e. on the ball.
 	ContainDistance float64 `json:"contain_distance"` // cd
+	// ContainWindow: outside the engage distance a Contain is sent only at a
+	// carrier someone reaches within this many seconds (FE local window 2 s).
+	ContainWindow float64 `json:"contain_window"` // cw
+}
+
+// LooseConfig is the single loose-ball resolver (Phase 2, loose_ball.go):
+// who contests a ball nobody controls, and how much the team that last had it
+// is drawn toward it.
+type LooseConfig struct {
+	// ContestGap: a side whose fastest player reaches the ball's control point
+	// this many seconds after the other side's does not sprint at it; he
+	// delays goal-side instead. < 0 disables (go5: both sides always chase).
+	ContestGap float64 `json:"contest_gap"` // lg
+	// DelayDistance: metres goal-side of the control point the delayer holds.
+	DelayDistance float64 `json:"delay_distance"` // ld
+	// SupportPull: share of the way the last side's supporters are pulled
+	// toward the ball's y while it is loose (go5: Player12's 0.12).
+	SupportPull float64 `json:"support_pull"` // lp
 }
 
 // M8Config is the M8 planner calibration.
@@ -108,6 +126,7 @@ type M10Config struct {
 type EngineConfig struct {
 	Modules ModuleConfig `json:"modules"`
 	M1      M1Config     `json:"m1"`
+	Loose   LooseConfig  `json:"loose"`
 	M2      M2Config     `json:"m2"`
 	M8      M8Config     `json:"m8"`
 	M10     M10Config    `json:"m10"`
@@ -143,8 +162,9 @@ func DefaultConfig() EngineConfig {
 		// Phase 2: a jockeying Contain 2 m goal-side (go4: feM1ApproachOffset,
 		// 0.75 m = on the ball). 5 seeds: cek ping-pong 34→20, chase≥3
 		// 10.6→8.4, loose ≥5 11.6→9.0, fouls 24→21 per side.
-		M1: M1Config{ContainDistance: 2.0},
-		M8: M8Config{Confidence: feM8Confidence, ExpandCarry: true},
+		M1:    M1Config{ContainDistance: 2.0, ContainWindow: feM1LocalArrivalWindow},
+		Loose: LooseConfig{ContestGap: 0.25, DelayDistance: 4.0, SupportPull: Shape_ATTACKING_TRANSITION_BALL_PULL},
+		M8:    M8Config{Confidence: feM8Confidence, ExpandCarry: true},
 		M10: M10Config{
 			NearDepth: -0.06, NearWidth: 0.14,
 			BoxGoalSide: 1.5, GoalSide: 1.5, TightWeight: 0.7,
@@ -182,6 +202,14 @@ func ApplyOverrides(c *EngineConfig, on, off, m2tune, m10 string, more ...string
 			switch k {
 			case "cd":
 				c.M1.ContainDistance = f
+			case "cw":
+				c.M1.ContainWindow = f
+			case "lg":
+				c.Loose.ContestGap = f
+			case "ld":
+				c.Loose.DelayDistance = f
+			case "lp":
+				c.Loose.SupportPull = f
 			default:
 				return false
 			}

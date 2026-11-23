@@ -462,7 +462,7 @@ func (e *MatchEngine) feM1AssignTasks(home bool, side *feM1Side, s *feM1State,
 		contain, containArrival := e.feM1ChooseSlot(home, 1.0, press,
 			func(slot int) bool { return !canEngage(slot) },
 			prev, feM1HandoffAdvantage)
-		if !engage && containArrival > feM1LocalArrivalWindow {
+		if !engage && containArrival > e.cfg.M1.ContainWindow {
 			// The midfield fallback engages only a carrier someone can reach
 			// within the FE local window (2 s); otherwise the block holds.
 			contain = -1

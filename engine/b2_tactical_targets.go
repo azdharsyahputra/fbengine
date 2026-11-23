@@ -74,6 +74,9 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 
 	homePressers := closestOutfieldPair(true)
 	awayPressers := closestOutfieldPair(false)
+	// Phase 2 loose-ball resolver (loose_ball.go): who contests a ball nobody
+	// controls. Inactive when Loose.ContestGap < 0.
+	race := e.looseRaceFor(carrier, shapeAnchor, homePressers, awayPressers)
 	if e.periodElapsed(Shape_MARK_REFRESH_STEPS) {
 		e.assignMarks()
 	}
@@ -678,6 +681,13 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 				if pressers[1] == player {
 					target.X -= attackDirection * Player_COVER_LOOSE_BALL_OFFSET
 				}
+				if race.active && race.late[hBoolIndex(player.IsHomeTeam)] {
+					// Lost the race: delay goal-side of the control point
+					// instead of sprinting at a ball the other side reaches first.
+					player.Intent = PlayerIntent_COVER_PRESS
+					target = e.looseDelayPoint(race, player.IsHomeTeam)
+					owner = TargetOwner_LOOSE
+				}
 			} else if e.ball.IsPass || e.ball.IsShot {
 				var tight *MatchPlayer
 				if e.ball.IsPass && e.ball.PassByHome != player.IsHomeTeam {
@@ -713,7 +723,7 @@ func (e *MatchEngine) refreshTacticalTargets(dt float64) {
 						Shape_ATTACKING_TRANSITION_RUN_ADVANCE,
 						Shape_ATTACKING_TRANSITION_SUPPORT_ADVANCE)
 					target.Y += (pressurePosition.Y - target.Y) *
-						Shape_ATTACKING_TRANSITION_BALL_PULL
+						e.cfg.Loose.SupportPull
 					if transitionRunner &&
 						e.isOffside(player, player.IsHomeTeam, lineFor(player.IsHomeTeam), 0.0) {
 						target.X -= attackDirection * Shape_ONSIDE_RECOVERY
