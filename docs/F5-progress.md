@@ -417,3 +417,5 @@ Dugaan "terlalu main aman" melemah: geometri umpan sama, tetapi di bola asli ~1 
 - metrik transisi membaik.
 
 `ir=0.8` tidak meloloskan kept/possMed. **Belum dijadikan default**; menunggu keputusan (nilai tengah ~0.65, atau terima 0.5).
+
+**Uji `ir=0.65`** (20 seed): kept 87 / 87, possMed 8.2 / 7.9 (dua-duanya gagal tipis), bola hilang 14%, giring ≥25 m per 90 6.9, gol 5.2 / 5.2, skor 0.812. Hubungannya monoton: penjaga keputusan butuh ~0.5, dan biaya bentuk (giring, lebar build-up) naik bersamaan. Nilai tengah tidak mendapat keduanya.
