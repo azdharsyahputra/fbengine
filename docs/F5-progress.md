@@ -37,3 +37,12 @@ Foul masih ~2× EPL. Percobaan tekel tetap 182 per laga (first defender menekan,
 1. Offside (11.5 per tim vs 1.8).
 2. Foul sisa: frekuensi tekel first defender.
 3. Tembakan dan corner.
+
+## Hasil tonton manual (seed 19, default `7f2ec35`) + probe offside
+
+Probe `AUDIT offside standing` / `AUDIT offside passes` (read-only, output identik).
+
+1. **Offside kebanyakan "timing", bukan posisi.** Waktu penyerang berdiri offside di TS justru lebih sedikit dari jalur lama (0.09–0.12 vs 0.12–0.15 per langkah pegang bola). Tapi 24 dari 31 umpan offside (seed 19) adalah undian timing: penerima masih onside 0–3 m, peluang dinyatakan offside sampai 70% (`Passing_OFFSIDE_TIMING_CHANCE 0.7`, jendela 3 m). TS memberi lebih banyak umpan maju ke pelari yang sejajar garis, jadi undian itu lebih sering kepakai. Sisanya (~7) umpan ke penerima 0–2 m di depan garis: M2 membaca garis dengan toleransi 1 m.
+2. **Kawalan lengket.** Di layar, bek menempel 1–2 m di penyerang (Kerkez–Doku, Gvardiol/Dias–Isak); di Metrica jaraknya ~7 m. Scorecard: bek <3 m dari penyerang 2.7 vs 1.5, jarak penyerang→bek 5.3 vs 7.4. Ini juga memberi banyak kontak/tekel.
+3. **Garis belakang terlalu tinggi saat bertahan di tengah:** 41 m vs 32 m. Bola di belakang garis jadi sering.
+4. **Pergantian karena cedera di babak 1:** 1.2 per laga (go16 0.8). Sudah ada sebelum TS.

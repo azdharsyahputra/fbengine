@@ -54,6 +54,9 @@ func (e *MatchEngine) passBall(passer *MatchPlayer, option *PassOption, forceLof
 				(e.hashNoise(receiver.Player.GetId(), 0x5eed)+1.0)*0.5 < chance
 		}
 	}
+	if e.ball.PassWasOffside {
+		e.auditOffsidePass(receiver, passer, e.isOffside(receiver, passer.IsHomeTeam, defenderLine, 0.0), defenderLine)
+	}
 	pressure := hClamp((Passing_PASS_PRESSURE_RADIUS_METRES-
 		e.nearestOpponentDistance(passer))/
 		Passing_PASS_PRESSURE_RADIUS_METRES,

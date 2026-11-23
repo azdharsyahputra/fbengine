@@ -46,6 +46,10 @@ type auditState struct {
 	fastAll int
 	// fouls by kind (ball won / missed, reckless, sanction, offender job)
 	fouls map[string]int
+	// offside: attacker-steps standing offside by owner:reason; offside passes by kind
+	offStand map[string]int
+	offSteps int
+	offPass map[string]int
 	// sprint starts (crossing 4 m/s) by job, and target jumps > 4 m between steps
 	sprintStart                    map[string]int
 	sprints, targetJumps, jobJumps int
@@ -166,6 +170,7 @@ func (e *MatchEngine) auditStep() {
 		a.lastTarget = make([]Vector2F, len(e.players))
 		a.lastReason = make([]string, len(e.players))
 	}
+	e.auditOffsideStep()
 	for i := range e.players {
 		p := &e.players[i]
 		if !active(p) || p.IsGoalkeeper {
@@ -406,6 +411,7 @@ func (e *MatchEngine) auditReport(w io.Writer) {
 	e.auditPivotReport(w)
 	e.auditCarryReport(w)
 	e.auditFoulReport(w)
+	e.auditOffsideReport(w)
 	if len(e.audit.fast) > 0 {
 		type kv struct {
 			k string
@@ -1235,4 +1241,85 @@ func (e *MatchEngine) auditChallenge(defender *MatchPlayer, sliding bool, outcom
 	a.fouls["chal "+k+" "+outcome]++
 	a.fouls[fmt.Sprintf("chal intent %d", defender.Intent)]++
 	a.fouls["chal all"]++
+}
+
+// auditOffsideStep counts attackers standing offside (live play, audit only).
+func (e *MatchEngine) auditOffsideStep() {
+	a := &e.audit
+	if a.offStand == nil {
+		a.offStand = map[string]int{}
+		a.offPass = map[string]int{}
+	}
+	if e.ball.PossessedBy == nil {
+		return
+	}
+	holder := e.findMatchPlayer(e.ball.PossessedBy)
+	if holder == nil {
+		return
+	}
+	a.offSteps++
+	line := e.offsideLine(holder.IsHomeTeam)
+	for i := range e.players {
+		p := &e.players[i]
+		if !active(p) || p.IsGoalkeeper || p.IsHomeTeam != holder.IsHomeTeam || p == holder {
+			continue
+		}
+		if e.isOffside(p, p.IsHomeTeam, line, 0.0) {
+			a.offStand[p.TargetOwner.String()+":"+p.TargetReason.String()]++
+			a.offStand["all"]++
+		}
+	}
+}
+
+// auditOffsidePass classifies a pass flagged offside at the kick (audit only).
+func (e *MatchEngine) auditOffsidePass(receiver, passer *MatchPlayer, beyond bool, line float64) {
+	if !e.diag.Audit {
+		return
+	}
+	a := &e.audit
+	if a.offPass == nil {
+		a.offPass = map[string]int{}
+	}
+	sign := -1.0
+	if passer.IsHomeTeam {
+		sign = 1.0
+	}
+	gap := (receiver.Position.X - line) * sign * Pitch_LENGTH_METRES
+	kind := "timing"
+	if beyond {
+		kind = "beyond"
+	}
+	a.offPass["kind "+kind]++
+	a.offPass[fmt.Sprintf("gap %.0f", math.Max(-2, math.Min(gap, 6)))]++
+	a.offPass["job "+receiver.TargetOwner.String()+":"+receiver.TargetReason.String()]++
+	a.offPass["all"]++
+}
+
+func (e *MatchEngine) auditOffsideReport(w io.Writer) {
+	a := &e.audit
+	if a.offSteps == 0 {
+		return
+	}
+	var ks []string
+	for k := range a.offStand {
+		ks = append(ks, k)
+	}
+	sort.Slice(ks, func(i, j int) bool { return a.offStand[ks[i]] > a.offStand[ks[j]] })
+	fmt.Fprintf(w, "AUDIT offside standing: per held step |")
+	for i, k := range ks {
+		if i < 10 {
+			fmt.Fprintf(w, " %s %.3f |", k, float64(a.offStand[k])/float64(a.offSteps))
+		}
+	}
+	fmt.Fprintln(w)
+	ks = ks[:0]
+	for k := range a.offPass {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	fmt.Fprintf(w, "AUDIT offside passes:")
+	for _, k := range ks {
+		fmt.Fprintf(w, " %s %d |", k, a.offPass[k])
+	}
+	fmt.Fprintln(w)
 }
