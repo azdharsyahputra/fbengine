@@ -53,7 +53,7 @@ Arah satu pemilik bentuk tetap benar untuk jangka panjang, karena kode bisa dira
 - replay ditonton dan lolos review empat situasi tetap (§6).
 
 **Bukan tujuan rencana ini:**
-- Kalibrasi statistik (tembakan, foul, umpan mundur, penerima bola). Itu fase terakhir (F7), setelah bentuk benar.
+- Kalibrasi statistik (tembakan, foul, umpan mundur, penerima bola). Itu fase terakhir (F5), setelah bentuk benar.
 - Mengubah M2 (keputusan), M6 (duel), M9 (bola mati), atau kiper, kecuali yang perlu untuk antarmuka.
 - Mode liga lama tetap identik.
 
@@ -206,34 +206,45 @@ Pemicunya: kebijakan tersembunyi di M3 yang membatalkan perbaikan go15.
 | M10 struktur, get-open | **Dihapus**, diganti aturan jalur TSC dan perapian jarak |
 | Loose resolver | Tetap, jadi job bola |
 | M9 bola mati, kiper | Tetap (di luar rencana) |
-| Knob go13–go16 (rg, fc, cr, ol, ft/fw/fz, ps/pq, cw, dll.) | Dibuang saat jalur lama dihapus (F6) |
+| Knob go13–go16 (rg, fc, cr, ol, ft/fw/fz, ps/pq, cw, dll.) | Dibuang saat jalur lama dihapus (F4) |
 
 ## 5. Fase
 
-Tiap fase menghasilkan:
-- satu atau lebih commit;
-- entri CHANGELOG;
-- replay `ts<N>`;
-- tabel metrik 10 seed;
-- review replay (§6).
+> **Diubah setelah F0 (keputusan lu):** pegang bola, bertahan, dan transisi **tidak dikerjakan satu per satu.** Dikerjakan satu per satu, tiap bagian disetel terhadap bentuk lawan yang lama, dan kita balik ke pola go13–go16 (satu angka beres, yang lain geser). Jadi TSC dibangun sebagai **satu sistem terorkestrasi untuk kedua tim di semua fase**, dan dinilai pakai **satu scorecard gabungan**.
 
-Jalur lama (go16) tetap identik byte selama `Modules.TeamShape = false`.
+### 5.1 Aturan orkestrasi
 
-| Fase | Isi | Gerbang lolos |
+1. **Satu pengatur, dua tim, semua fase.** Tiap refresh, TSC menghitung slot untuk kedua tim sekaligus dari tabel formasi yang sama:
+   - pegang bola: tabel fase `att`;
+   - bertahan: tabel fase `def`;
+   - transisi: perpindahan halus dari slot `att` ke `def` (atau sebaliknya) selama sekitar 4 detik, dengan pemain dekat bola tetap di job bola.
+
+   Bentuk pegang bola tim A dan bentuk bertahan tim B selalu dihitung bersamaan, jadi tidak ada bagian yang disetel terhadap bentuk lama.
+2. **Satu composer** untuk semua permintaan dari dua tim, dengan aturan prioritas, kuota, dan jarak yang sama.
+3. **Satu scorecard gabungan** (`audit/scorecard.js`):
+   - Semua metrik bentuk (S1–S8, penerima, kecepatan) untuk pegang bola, bertahan, dan transisi di tiap zona dinilai **sekaligus** terhadap rentang Metrica.
+   - Metrik lama (§3.3) ikut dinilai sebagai penjaga.
+   - Hasilnya satu skor dan daftar lolos/gagal.
+   - **Satu perubahan hanya diterima kalau skor total membaik dan tidak ada penjaga yang jebol.** Ga boleh lagi "angka X beres, Y geser".
+4. **Yang boleh disetel cuma parameter TSC/composer** (tabel formasi, batas blok, jarak minimal, kuota, kelas kecepatan). Disapu bersama dan dinilai pakai scorecard yang sama. Knob per gejala di modul lain dilarang.
+5. **Statistik (tembakan, foul, dll.) tidak disentuh** sampai scorecard bentuk lolos (F4).
+
+### 5.2 Tahapan
+
+Tahapan ini urutan **bangun**, bukan urutan **nyalakan**. Jalur baru dinyalakan dan dinilai sebagai satu kesatuan. Jalur lama (go16) tetap identik byte selama `Modules.TeamShape = false`.
+
+| Tahap | Isi | Gerbang |
 |---|---|---|
-| **F0: patokan dan alat ukur** | (a) Konverter Metrica → replay schema 2: frame 25 Hz di-resample ke 4 Hz, live mask dan penguasaan dari event, peran ditebak dari posisi rata-rata dan dipetakan ke label kita. (b) `audit/shape_suite.js` berisi S1–S10 per fase dan zona bola. (c) Tabel baseline: go16, P12, r53, Metrica, SkillCorner (dekat bola). (d) **Audit ulang target go13–go16** terhadap Metrica. (e) Ekstraksi tabel formasi per kelompok peran. | Dua laga Metrica konsisten (S1–S6 beda <15%). Daftar gap terverifikasi, diurutkan dari yang terbesar. |
-| **Titik keputusan** | Gue lapor daftar gap ke lu, lalu kita putuskan cakupan F2–F4. Kalau gap selain blok bertahan kecil, F3 (pegang bola) bisa dikecilkan jadi perapian jarak saja. | Keputusan lu |
-| **F1: kerangka + mode bayangan** | Modul `TeamShape` (default off). TSC menghitung slot tanpa mengubah gerak. Probe membandingkan slot vs posisi aktual. Viewer: opsi gambar slot. | Slot statis yang dinilai pakai S1–S6 masuk rentang Metrica. go16 identik byte saat off. |
-| **F2: bertahan tenang (gap terbesar)** | Blok TSC: dua baris, tinggi blok, batas panjang dan lebar, geser ke sisi bola. M1 first defender/contain/cover/marker jadi permintaan. Protect depth, recover shape, dan forward pulang ditata ulang dalam blok. | Panjang blok sekitar 26–27 m, lebar sekitar 32 m (Metrica). S7/S8 masuk target. chase3, liar5, ping-pong, carry25, box free tidak mundur. |
-| **F3: pegang bola tenang** | Composer untuk tim pegang bola. Support/duty/struktur jadi permintaan. Jalur P12/M4/M10 dilewati saat on. Cakupan sesuai titik keputusan. | S1–S6 pegang bola (terutama jarak teman terdekat sekitar 10.4 m). S9/S10 bergerak ke arah asli. §3.3 tidak mundur. |
-| **F4: transisi dan job khusus** | Pelari, overlap, press, bola liar, bola di udara jadi permintaan berkuota. Lebar transisi sekitar 34 m. Siapa langsung pulang, siapa lanjut. | Semua metrik §3 di semua fase. Review transisi lolos. |
-| **F5: M3 bersih** | Kebijakan tersembunyi dipindah ke kelas kecepatan composer. | Distribusi kecepatan vs Metrica (jalan/jog/lari/sprint %). Lockstep sekitar 0.54. |
-| **F6: hapus jalur lama** | `TeamShape` jadi default. Kode dan knob lama dihapus. go16 tetap bisa dijalankan dari git tag. | Tes, golden hash baru, `--reproduce`. |
-| **F7: kalibrasi keputusan dan statistik** | M2/M6 disetel ulang di atas bentuk baru: tembakan (sekarang 15–28 per tim, P12 murni 5–15), foul, umpan mundur, penerima, penguasaan bola. | Rentang ±20% dari data asli (tujuan proyek). |
+| **F0: patokan dan alat ukur** (selesai, `f05e79d`) | Konverter Metrica, shape suite, tabel formasi, baseline, audit ulang target lama | Lihat [F0-baseline.md](F0-baseline.md) |
+| **F1: TSC + composer, mode bayangan** | TSC (pegang bola + bertahan + transisi, dua tim) menghitung slot tiap refresh tanpa mengubah gerak. Composer dan tipe permintaan dibangun, tapi belum memutuskan. Probe: slot vs posisi aktual. Viewer: gambar slot. Scorecard dibuat. | Scorecard **slot** (posisi kalau semua pemain berdiri tepat di slot) lolos untuk **semua** fase dan zona. go16 identik byte saat off. |
+| **F2: nyalakan semuanya bersamaan** | `TeamShape` on: posisi tenang dari TSC, M1/P12/M5/M10 jadi permintaan, transisi dari aturan TSC. Kelas kecepatan dari composer (M3 cuma eksekutor). | Scorecard gabungan **aktual** (pemain bergerak, ada duel, ada bola) lolos semua fase. Review visual empat situasi lolos. Penjaga tidak jebol. |
+| **F3: sapu parameter bersama** | Kalau F2 belum lolos penuh: sapu parameter TSC/composer **bareng-bareng** (bukan per metrik), pilih pakai skor total scorecard. | Scorecard lolos. Hasil sapuan 10 seed. |
+| **F4: hapus jalur lama** | `TeamShape` jadi default. Kode dan knob lama (go13–go16) dihapus. go16 tetap bisa dijalankan dari git tag. | Tes, golden hash baru, `--reproduce`. |
+| **F5: kalibrasi keputusan dan statistik** | M2/M6 disetel ulang di atas bentuk baru: tembakan, foul, umpan mundur, penerima, penguasaan bola, giring panjang. Scorecard bentuk tetap jadi penjaga. | Statistik ±20% dari data asli **dan** scorecard bentuk tetap lolos. |
 
 ## 6. Protokol validasi tiap fase
 
-1. **Otomatis:** `audit/eval.sh` 10 seed + shape suite. Tabel sebelum/sesudah vs target.
+1. **Otomatis:** `audit/eval.sh` 10 seed + `audit/scorecard.js` (skor total + daftar lolos/gagal semua fase sekaligus).
 2. **Review visual tetap:** empat situasi, filmstrip dari atas (`draw.py`) dibandingkan Metrica pada situasi serupa, plus tonton di viewer:
    - build-up dari belakang;
    - serangan sayap di sepertiga akhir;
@@ -245,17 +256,21 @@ Jalur lama (go16) tetap identik byte selama `Modules.TeamShape = false`.
 
 | Risiko | Mitigasi |
 |---|---|
-| Perubahan besar sekaligus bikin engine rusak lama | Mode bayangan (F1), flag modul, per fase, jalur lama identik byte |
+| Perubahan besar sekaligus bikin engine rusak lama | Mode bayangan (F1) menilai slot dulu sebelum dinyalakan. Flag modul. Jalur lama identik byte. |
 | Metrica cuma 2 laga, level tidak diketahui (kemungkinan bukan liga top) | Cocokkan metrik dekat bola dengan SkillCorner (EPL/LaLiga). Pakai rentang, bukan titik. |
 | Formasi asli beda (4-3-3, 4-4-2) dengan label 4-2-3-1 kita | Tabel per kelompok peran (bek tengah, bek sayap, gelandang bertahan, sayap, tengah, depan), bukan per formasi |
-| Kalibrasi M2/M1 lama bergantung bentuk lama (duel_loss, progress, contain window) | Diterima. Dikalibrasi ulang di F7, tidak dikejar di F2–F4. |
+| Kalibrasi M2/M1 lama bergantung bentuk lama (duel_loss, progress, contain window) | Diterima. Dikalibrasi ulang di F5, tidak dikejar sebelum scorecard bentuk lolos. |
 | Performa (penugasan + perapian jarak tiap refresh, RAM 8 GB) | Greedy + histeresis, kandidat perapian sedikit (FE: sekitar 6), separuh pemain per refresh (cara FE) |
 | Kuota/prioritas bikin pemain kaku | Kuota dan deviasi jadi config, disapu di tiap fase, dicek visual |
 | Tergoda nambal lagi | Aturan: tidak ada knob baru di luar TSC/composer. Masalah bentuk diselesaikan di TSC. |
 
-## 8. Keputusan yang dibutuhkan dari lu
+## 8. Keputusan
 
-1. **Patokan utama bentuk = Metrica** (laga penuh), SkillCorner hanya untuk metrik dekat bola. Setuju?
-2. **Mulai dari F0**, lalu titik keputusan sebelum ngoding arsitektur. Setuju?
-3. **Sumber tabel formasi:** kalibrasi dari Metrica dengan mesin interpolasi ala FE (saran), atau port formasi FE apa adanya.
-4. **Kerja paralel:** sesi engine Rust lagi idle. Mau dipakai juga, misalnya buat bandingin cara r53 di tiap fase?
+Sudah diputuskan:
+- Patokan bentuk = Metrica.
+- F0 dulu.
+- Pegang bola, bertahan, dan transisi dibangun dan dinyalakan **bersamaan** dengan satu scorecard gabungan.
+
+Masih terbuka:
+1. **Sumber tabel formasi:** dari Metrica dengan interpolasi ala FE (saran), atau port formasi FE apa adanya.
+2. **Kerja paralel:** sesi engine Rust lagi idle. Mau dipakai juga sebagai pembanding?

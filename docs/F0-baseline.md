@@ -111,3 +111,24 @@ Artinya:
 **Koreksi atas laporan sebelumnya:** cek cepat Metrica sebelum F0 bilang "bentuk menyerang go16 sudah mirip asli". Itu salah. Rata-rata semua zona dan penguasaan dari event menutupi gap di sepertiga sendiri dan tengah. Angka per zona di atas yang berlaku.
 
 **Engine Rust r53** paling dekat di lebar, jalur pinggir, dan blok, tapi DM–AM-nya terlalu jauh (18 m). Player12 murni sempit dan panjang. Dua-duanya bukan target. Target = Metrica.
+
+## Scorecard gabungan (`audit/scorecard.js`)
+
+135 metrik bentuk dinilai sekaligus: pegang bola, bertahan, dan transisi di tiap zona, plus penerima bola, kecepatan, dan giring panjang. Penjaga = metrik cek lama.
+
+| | Skor (makin kecil makin baik) | Lolos | Penjaga |
+|---|---|---|---|
+| Metrica g1 sendiri (cek kewajaran) | 0.24 | 135/135 | — |
+| Rust r53 | 1.39 | 60/135 | — |
+| **go16** | **1.49** | **54/135** | 4/11 |
+| Player12 murni | 1.72 | 52/135 | — |
+
+Metrik go16 yang paling jauh campur dari semua fase:
+- tumpukan waktu transisi bertahan;
+- garis belakang waktu transisi menyerang;
+- lebar dan jalur pinggir waktu pegang bola;
+- panjang blok bertahan (tenang dan transisi);
+- jarak DM–AM dan AM–ST waktu bertahan;
+- pemain jalan cuma 30% waktu (asli 48%).
+
+Ini alasan semua fase dibangun bersama (PLAN §5.1).
