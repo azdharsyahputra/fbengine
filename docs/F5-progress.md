@@ -279,3 +279,21 @@ Disiplin membaik jelas, bentuk netral. Selisih gol +0.5 sekitar 0.8 SD di 20 see
 - 0: standoff paksa.
 
 **Berikutnya:** take-on slide di luar zona sliding → jockey (tanpa commit); dan syarat sliding pemulihan dekat gawang (mis. hanya saat pembawa lari ke gawang).
+
+## Ronde 12: sliding take-on (gagal) dan stop-loss foul
+
+**Hipotesis:** sliding dari take-on yang gagal tidak lewat `SlideDepth`; knob uji `tg` = di luar zona sliding bek menahan (tidak commit).
+
+| 20 seed | Foul/tim | Kuning | Merah | Sliding/laga | Gol | carry25 | Skor | recvPress (≤37) |
+|---|---|---|---|---|---|---|---|---|
+| default | 19.7 | 5.6 | 0.75 | 84 | 4.3 | 22.5 | 0.769 | 37 / 36 |
+| `tg=1` | 17.2 | 6.3 | 0.85 | 60 | 4.4 | 25.5 | 0.768 | 37 / 38 |
+
+**Ditolak:** foul −13% tetapi kartu tidak membaik, giring panjang naik, recvPress jebol di satu set. Sliding pemulihan meleset-reckless dekat gawang (~19 per laga), sumber utama kartu, tidak tersentuh.
+
+**Stop-loss foul** (dua kegagalan berturut-turut: `tr`, `tg`). Diterima sebagai gap terdokumentasi:
+- foul ~20 per tim (EPL 10.5);
+- kuning ~5.6, merah ~0.75 per laga (EPL 4.2 / 0.15);
+- percobaan tekel ~196 per laga.
+
+Petunjuk untuk nanti: sliding pemulihan dalam 20 m dari gawang (~59 per laga, meleset ~50%) dan reckless = sliding dari belakang atau kecepatan ≥5 m/s (`feRecklessSpeed`).
