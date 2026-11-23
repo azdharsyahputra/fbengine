@@ -128,3 +128,23 @@ Offside mendekati EPL (1.8). Gol 3.9 masih di batas +20%. Skor naik 0.04 hanya k
 **Catatan reproduksi:** M6.SlideDepth dan M2.OffsideTiming juga berlaku di `FMENGINE_OFF=TS`. go16 persis hanya dari tag `pre-ts-default`.
 
 **Berikutnya:** tembakan (22.5 per tim vs ~13) dan corner (12 vs ~5.3) sekarang outlier statistik terbesar, lalu foul (20 vs 10.5).
+
+## Ronde 6: tembakan
+
+**Bug pengukuran (`b133c2a`):** event `SHOT_OFF_TARGET` tidak pernah dicatat. Tembakan melenceng keluar tidak masuk statistik laga maupun replay (seed 19: 46 tercatat dari 71). Semua angka tembakan sebelumnya ~40% terlalu kecil. Sekarang dicatat; frame identik.
+
+**Probe `AUDIT shots`** (default, 10 seed, per laga dua tim): 71 tembakan; 28 dari >25 m; 35 dengan xG <0.03; 51% diblok; 26 dari bola mati (13 sundulan); xG total 4.7.
+
+**Perubahan:** `M2.ShotValueScale` 1.7 → **1.2** (nilai lama dikalibrasi dengan hitungan tembakan yang kurang).
+
+| 10 seed | Tembakan/tim | >25 m per laga | Diblok | Gol | Skor | Penjaga bentuk |
+|---|---|---|---|---|---|---|
+| `ss=1.7` | 33.2 | 27.9 | 51% | 3.9 | 0.832 | 2/6 |
+| **`ss=1.2` (default)** | 30.6 | 17.7 | 56% | 3.9 | 0.792 | 2/6 |
+| `ss=0.9` | 24.8 | 13.3 | 55% | 4.3 | 0.783 | 1/6 (recvPress 38) |
+
+`ss=0.9` ditolak: penjaga recvPress jebol, gol di atas +20%.
+
+**Sisa (masih ~2× EPL 13/tim):**
+1. Porsi diblok ~55% (asli ~25%): blok terlalu mudah, atau tembakan dilepas ke tubuh bek.
+2. Tembakan dari bola mati ~26 per laga, termasuk ~13 sundulan (EPL ~5 sundulan per laga); corner ~12 per tim (asli 5.3).

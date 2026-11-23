@@ -328,7 +328,7 @@ func DefaultConfig() EngineConfig {
 			ReceiverLoss:      0.3,
 			CurveShare:        0.2,
 			Shield:            false,
-			ShotValueScale:    1.7,
+			ShotValueScale:    1.2, // F5 (shots now counted incl. off target): 1.7 → 1.2, long shots 28 → 18 a match
 			ThreatPeak:        feM2ThreatPeak,
 			ThreatDecay:       feM2ThreatDecay,
 			PassMinimumMargin: -6,
